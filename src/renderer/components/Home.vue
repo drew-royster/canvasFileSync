@@ -1,11 +1,19 @@
 <template>
   <v-content>
     <v-layout row justify-center id="wrapper">
-      <v-flex xs12 class="text-xs-center centered">
-        <img id="logo" class="logo" src="~@/assets/icons_normal/icons/logo.svg" alt="electron-vue">
+      <v-flex xs3></v-flex>
+      <v-flex xs6 class="text-xs-center">
+        <v-card light>
+          <v-card-text>
+            <v-flex xs12>
+              <img height="150px" width="150px" id="logo" class="logo" src="~@/assets/icons_normal/icons/logo.svg" alt="electron-vue">
+            </v-flex>
+          </v-card-text>
+        </v-card>
       </v-flex>
+      <v-flex xs3></v-flex>
     </v-layout>
-    <v-layout id="main-content" row>
+    <v-layout row>
       <v-flex xs3></v-flex>
       <v-flex xs6>
         <v-card>
@@ -150,13 +158,7 @@
     align-items: center;
   }
 
-  .logo
-  {
-    margin-top: 5%;
-    max-width: 100%;
-  }
-
-  #main-content
+  #wrapper
   {
     margin-top: 2%;
   }
