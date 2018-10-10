@@ -8,6 +8,7 @@
     name: 'login',
     props: ['url'],
     mounted() {
+      console.log(this.$store.getters.rootURL);
       let CSRFToken = '';
       let canvasSession = '';
       let capturedCreds = false;

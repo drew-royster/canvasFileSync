@@ -1,24 +1,47 @@
 /* eslint-disable */
 const request = require('request-promise');
-// const fs = require('fs');
+const map = require('promise-map');
 const path = require('path');
 const log = require('electron-log');
 
 const getActiveCanvasCourses = async (
-  accountDomain,
   authToken,
+  rootURL,
 ) => {
   try {
     const options = {
       method: 'GET',
-      uri: `http://${accountDomain}/api/v1/users/self/courses?enrollment_state=active`,
+      uri: `http://${rootURL}/api/v1/users/self/courses?enrollment_state=active`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
     };
+    console.log(rootURL);
+    console.log(authToken);
     const activeCoursesResponse = await request(options);
-    log.info(activeCoursesResponse);
-    return { success: true, message: 'success', response: activeCoursesResponse };
+    console.log(activeCoursesResponse);
+    const activeCourses = await Promise.resolve(activeCoursesResponse).then(map(async (element) => {
+      const sync = await hasAccessToFilesAPI(authToken, rootURL, element.id);
+      if (sync) {
+        const { files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, element.id);
+        return { id: element.id,
+          sync: true,
+          path: '',
+          name: element.name.split('|')[0].trim(),
+          items: [],
+          files_url,
+          folders_url,
+        };
+      } else {
+        return { id: element.id,
+          sync,
+          path: '',
+          name: element.name.split('|')[0].trim(),
+          items: [],
+        };
+      }
+    }))
+    return { success: true, message: 'success', response: activeCourses };
   } catch (error) {
     log.error(error);
     if (
@@ -30,7 +53,7 @@ const getActiveCanvasCourses = async (
   }
 };
 
-const hasAccessToFilesAPI = async (rootURL, courseID, authToken) => {
+const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
     uri: `http://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
@@ -49,42 +72,85 @@ const hasAccessToFilesAPI = async (rootURL, courseID, authToken) => {
   return false;
 };
 
-const getData = async (authToken, folderPath, folderURL) => {
+
+//Right now this will only get 100 folders may want to add recursion into this as well
+const getFolders = async (authToken, folderURL) => {
+  const options = {
+    method: 'GET',
+    uri: `${folderURL}/?per_page=100`,
+    headers: { Authorization: `Bearer ${authToken}` },
+    json: true,
+    encoding: null,
+  };
+  const foldersResponse = await request(options);
+  return Promise.resolve(foldersResponse).then(map(async (element) => {
+    return {
+      name: element.name,
+      folder: true,
+      lastUpdated: element.updated_at,
+      folders_count: element.folders_count,
+      folders_url: element.folders_url,
+      files_count: element.files_count,
+      files_url: element.files_url,
+      size: 0,
+      sync: true,
+      id: element.id,
+      items: [],
+    }
+  }));
+};
+
+//Right now this will only get 100 files may want to add recursion into this as well
+const getFiles = async (authToken, filesURL) => {
+  const options = {
+    method: 'GET',
+    uri: `${filesURL}/?per_page=100`,
+    headers: { Authorization: `Bearer ${authToken}` },
+    json: true,
+    encoding: null,
+  };
+  const filesResponse = await request(options);
+  return Promise.resolve(filesResponse).then(map(async (element) => {
+    return {
+      name: element.display_name,
+      url: element.url,
+      folder: false,
+      lastUpdated: element.updated_at,
+      size: element.size,
+      sync: true,
+      id: element.id,
+    }
+  }));
+};
+
+const getData = async (authToken, course) => {
   try {
-    console.log(folderURL);
-    const results = [];
     // This probably has flaws, but we can move forward for now
-    const getFolders = async (authToken, folderPath, folderURL, page) => {
-      const options = {
-        method: 'GET',
-        uri: `${folderURL}/?page=${page}`,
-        headers: { Authorization: `Bearer ${authToken}` },
-        json: true,
-        encoding: null,
-      };
-      const folderResponse = await request(options);
-      if (folderResponse.length === 0) {
-        // do nothing
-        console.log('length is zero');
-      } else if (folderResponse.length < 10) {
-        // add current folders then do nothing
-        results.push(folderResponse);
-        console.log('length is less than 10');
-      } else {
-        // call this function again until all folders are grabbed
-        console.log('length is ten calling function again');
-        results.push(folderResponse);
-        await getFolders(authToken, folderPath, folderURL, page + 1);
-      }
+    const getAllFolders = async (authToken, folder) => {
+      return new Promise(async (resolve, reject) => {
+        const foldersResponse = await getFolders(authToken, folder.folders_url);
+        let allFolders = await Promise.resolve(foldersResponse).then(map(async (element) => {
+          if (element.folders_count > 0) {
+            const folderItems = await getAllFolders(authToken, element);
+            const fileItems = await getFiles(authToken, element.files_url);
+            element.items = folderItems.concat(fileItems);
+          }
+          else {
+            const fileItems = await getFiles(authToken, element.files_url);
+            element.items = fileItems;
+          }
+          return element;
+        }));
+        resolve(allFolders);
+      });
     };
-    await getFolders(authToken, folderPath, folderURL, 1);
-    console.log(results);
+    return getAllFolders(authToken, course);
   } catch (error) {
     console.error(error);
   }
 };
 
-const getCourseFilesFoldersURL = async (authToken, rootURL, courseID) => {
+const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
   try {
     const options = {
       method: 'GET',
@@ -94,45 +160,19 @@ const getCourseFilesFoldersURL = async (authToken, rootURL, courseID) => {
       encoding: null,
     };
     const rootFolderResponse = await request(options);
-    return rootFolderResponse.folders_url;
+    return { files_url: rootFolderResponse.files_url, folders_url: rootFolderResponse.folders_url };
   } catch (err) {
     console.error(err);
     return { error: 'Problem getting course files folder' };
   }
 };
 
-const getCourseItemsMap = async (authToken, rootURL, rootFolder, course) => {
-  const courseFilesFoldersURL = await getCourseFilesFoldersURL(authToken, rootURL, course.id);
-  const results = await getData(authToken, rootFolder, courseFilesFoldersURL);
-  console.log(results);
+const getCourseItemsMap = async (authToken, course) => {
+  let results = await getData(authToken, course);
+  const filesResponse = await getFiles(authToken, course.files_url);
+  course.items = results.concat(filesResponse);
+  return course;
 };
 
-// export default { getActiveCanvasCourses, hasAccessToFilesAPI, getCourseItemsMap };
-
-const course = { id: 458739,
-  name: 'Networks 3',
-  account_id: 658,
-  uuid: 'wISTVe3HRpnjgnSKHCUidv5pfUFkszStjgFDIFzd',
-  start_at: '2018-08-21T06:00:00Z',
-  grading_standard_id: 539757,
-  is_public: false,
-  course_code: 'CS-4610-001 | Fall 2018',
-  default_view: 'wiki',
-  root_account_id: 16,
-  enrollment_term_id: 734,
-  end_at: '2018-12-13T00:00:00Z',
-  public_syllabus: false,
-  public_syllabus_to_auth: false,
-  storage_quota_mb: 20000,
-  is_public_to_auth_users: false,
-  apply_assignment_group_weights: true,
-  calendar: { ics: 'https://uvu.instructure.com/feeds/calendars/course_wISTVe3HRpnjgnSKHCUidv5pfUFkszStjgFDIFzd.ics' },
-  time_zone: 'America/Denver',
-  original_name: 'CS-4610-001 | Fall 2018',
-  blueprint: false,
-  enrollments: [{ type: 'student', role: 'StudentEnrollment', role_id: 268, user_id: 1477534, enrollment_state: 'active' }],
-  hide_final_grades: false,
-  workflow_state: 'available',
-  restrict_enrollments_to_course_dates: false };
-
-getCourseItemsMap('1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', 'uvu.instructure.com', '/Users/drewroyster/Documents/classes', course);
+export default { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+// module.exports  { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };

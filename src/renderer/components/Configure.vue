@@ -143,6 +143,7 @@
       },
     },
     mounted() {
+      this.$store.dispatch('generateFilesMap');
       this.$electron.ipcRenderer.on('chose-folder', (event, data) => {
         this.folderChosen = true;
         this.folder = data[0];

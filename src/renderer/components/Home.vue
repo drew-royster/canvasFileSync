@@ -22,6 +22,7 @@
               <v-form ref="form" v-model="valid" lazy-validation>
                 <v-layout row>
                   <v-autocomplete
+                    v-if="!manual"
                     ref="schoolSearch"
                     v-model="school"
                     :items="schools"
@@ -31,13 +32,19 @@
                     hide-no-data
                     hide-selected
                     item-text="name"
-                    item-value="domain"
                     label="School"
                     placeholder="Search for schools or enter domain"
                     prepend-icon="school"
                     return-object
                     required
                   ></v-autocomplete>
+                  <v-text-field
+                    v-else
+                    placeholder="Enter schools canvas domain name"
+                    v-model="schoolURL"
+                    prepend-icon="school"
+                    required
+                  ></v-text-field>
                 </v-layout>
                 <v-layout v-if="manual" row>
                   <v-flex xs12>
@@ -88,6 +95,7 @@
         manual: false,
         valid: false,
         school: null,
+        schoolURL: null,
         schools: [],
         isLoading: false,
         search: null,
@@ -109,7 +117,7 @@
         // Lazily load input items
         const options = {
           method: 'GET',
-          uri: `https://canvas.instructure.com/api/v1/accounts/search?name=${val}`,
+          uri: `https://canvas.instructure.com/api/v1/accounts/search?name=${val}&per_page=100`,
           json: true,
         };
         request(options).then((res) => {
@@ -126,20 +134,11 @@
       connect() {
         if (this.$refs.form.validate()) {
           try {
-            // check if school has been searched for and found
-            if (this.school && this.manual) {
-              // manual connect using school.domain
-              this.$store.commit('SET_CONNECTION_PARAMETERS', { rootURL: this.school.domain, authToken: this.authToken });
+            if (this.manual) {
+              this.$store.commit('SET_CONNECTION_PARAMETERS', { rootURL: this.schoolURL, authToken: this.authToken });
               this.$store.dispatch('connect');
-            } else if (this.school && !this.manual) {
-              // go to school.domain to login TODO
-              this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
-            } else if (!this.school && this.manual) {
-              // manual connect using search value as URL
-            } else if (!this.school && !this.manual) {
-              // go to seach value as URL to login
             } else {
-              alert('No domain specified');
+              this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
             }
           } catch (err) {
             console.error(err);

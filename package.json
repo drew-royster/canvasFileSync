@@ -63,13 +63,13 @@
     "lodash": "^4.17.11",
     "moment": "^2.22.2",
     "path": "^0.12.7",
+    "promise-map": "^1.2.0",
     "request-promise": "^4.2.2",
     "vue": "^2.4.2",
     "vue-electron": "^1.0.6",
     "vue-router": "^2.5.3",
     "vuetify": "^1.2.4",
-    "vuex": "^2.3.1",
-    "vuex-persistfile": "^0.1.4"
+    "vuex": "^2.3.1"
   },
   "devDependencies": {
     "babel-core": "^6.25.0",
