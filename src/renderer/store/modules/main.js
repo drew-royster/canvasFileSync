@@ -1,22 +1,30 @@
 // import { dialog } from 'electron'; // eslint-disable-line
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
+const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
+const dataStorage = dataStorageFile.default;
 const path = require('path');
 
 const state = {
-  main: 0,
   authToken: null,
   rootURL: null,
   rootFolder: null,
   syncFrequency: null,
   itemsMap: [],
+  matchesPersistentStorage: false,
 };
 
 const mutations = {
   SET_CONNECTION_PARAMETERS(state, payload) {
     state.authToken = payload.authToken;
     state.rootURL = payload.rootURL;
+  },
+  SET_DISK_MATCHES_STATE(state) {
+    state.matchesPersistentStorage = true;
+  },
+  SET_DISK_DOES_NOT_MATCH_STATE(state) {
+    state.matchesPersistentStorage = false;
   },
   SET_ROOT_FOLDER(state, payload) {
     state.rootFolder = payload;
@@ -40,7 +48,6 @@ const mutations = {
   },
   SET_COURSE_MAP(state, payload) {
     state.itemsMap[payload.index] = payload.updatedCourse;
-    console.log(state);
   },
 };
 
@@ -65,6 +72,10 @@ const actions = {
         commit('SET_COURSE_MAP', { index, updatedCourse });
       }
     });
+  },
+  saveStateToDisk({ commit }) {
+    dataStorage.saveCurrentState(state);
+    commit('SET_DISK_MATCHES_STATE');
   },
   beginInitialSync({ commit }, payload) {
     commit('SET_ROOT_FOLDER', payload.rootFolder);

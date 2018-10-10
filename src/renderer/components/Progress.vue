@@ -20,6 +20,9 @@
 <script>
   export default {
     name: 'progress',
+    mounted() {
+      this.$store.dispatch('saveStateToDisk');
+    },
   };
 </script>
 

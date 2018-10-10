@@ -40,8 +40,7 @@ function createWindow() {
    * Initial window options
    */
   mainWindow = new BrowserWindow({
-    height: 563,
-    useContentSize: true,
+    height: 600,
     width: 1000,
     webPreferences: { webSecurity: false },
   });
@@ -80,11 +79,6 @@ app.on('window-all-closed', () => {
 ipcMain.on('choose-folder', (event) => {
   const folder = dialog.showOpenDialog({ properties: ['openDirectory'] });
   event.sender.send('chose-folder', folder);
-});
-
-ipcMain.on('go-university-login', (event, url) => {
-  console.log(event);
-  mainWindow.loadURL(`https://${url}`);
 });
 
 app.on('activate', () => {
