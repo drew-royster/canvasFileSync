@@ -5,6 +5,7 @@ const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
 const path = require('path');
+const _ = require('lodash');
 
 const state = {
   authToken: null,
@@ -47,7 +48,9 @@ const mutations = {
     state.itemsMap.push(payload);
   },
   SET_COURSE_MAP(state, payload) {
-    state.itemsMap[payload.index] = payload.updatedCourse;
+    console.log(payload);
+    const index = _.findIndex(state.itemsMap, { id: payload.id });
+    state.itemsMap[index] = payload;
   },
 };
 
@@ -64,12 +67,12 @@ const actions = {
     });
   },
   generateFilesMap({ commit }) {
-    state.itemsMap.forEach(async (course, index) => {
+    state.itemsMap.forEach(async (course) => {
       if (course.sync) {
         const copyCourse = Object.assign({}, course);
         const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
           copyCourse);
-        commit('SET_COURSE_MAP', { index, updatedCourse });
+        commit('SET_COURSE_MAP', { updatedCourse });
       }
     });
   },

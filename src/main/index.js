@@ -77,7 +77,7 @@ function createWindow() {
   });
 }
 
-app.on('ready', () => {
+app.on('ready', async () => {
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
@@ -91,7 +91,7 @@ app.on('ready', () => {
     path.join(__static, 'icons_inverted/icons/png/32x32@2x.png') // eslint-disable-line
   );
 
-  if (dataStorage.isConnected()) {
+  if (await dataStorage.isConnected()) {
     if (app.dock) app.dock.hide();
     updateMenu(getUpdatedConnectedMenu(lastSynced));
   } else {
