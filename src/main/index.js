@@ -2,6 +2,10 @@
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 const path = require('path');
 const applicationMenu = require('./application-menus');
+const dataStorageFile = require('../utils/dataStorage');
+const moment = require('moment');
+const dataStorage = dataStorageFile.default;
+
 
 /**
  * Set `__static` path to static files in production
@@ -13,6 +17,7 @@ if (process.env.NODE_ENV !== 'development') {
 
 let mainWindow;
 let tray;
+const lastSynced = Date.now();
 const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
@@ -35,6 +40,26 @@ const notConnectedMenu = [
   },
 ];
 
+const getUpdatedConnectedMenu = (lastSynced) => {
+  return [
+    {
+      label: `Last Synced: ${moment(lastSynced).fromNow()}`,
+      enabled: false,
+    },
+    {
+      label: 'Sync Now',
+      enabled: true,
+    },
+    {
+      label: 'Sign Out',
+      enabled: true,
+    },
+    {
+      label: 'Quit',
+    },
+  ];
+};
+
 function createWindow() {
   /**
    * Initial window options
@@ -53,7 +78,6 @@ function createWindow() {
 }
 
 app.on('ready', () => {
-  // if (app.dock) app.dock.hide();
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
@@ -66,8 +90,14 @@ app.on('ready', () => {
   tray.setPressedImage(
     path.join(__static, 'icons_inverted/icons/png/32x32@2x.png') // eslint-disable-line
   );
-  updateMenu(notConnectedMenu);
-  createWindow();
+
+  if (dataStorage.isConnected()) {
+    if (app.dock) app.dock.hide();
+    updateMenu(getUpdatedConnectedMenu(lastSynced));
+  } else {
+    updateMenu(notConnectedMenu);
+    createWindow();
+  }
 });
 
 app.on('window-all-closed', () => {

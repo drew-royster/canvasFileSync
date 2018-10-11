@@ -2,6 +2,7 @@
 const request = require('request-promise');
 const map = require('promise-map');
 const path = require('path');
+const fs = require('fs');
 const log = require('electron-log');
 
 const getActiveCanvasCourses = async (
@@ -29,6 +30,7 @@ const getActiveCanvasCourses = async (
           path: '',
           name: element.name.split('|')[0].trim(),
           items: [],
+          folder: true,
           files_url,
           folders_url,
         };
@@ -125,7 +127,6 @@ const getFiles = async (authToken, filesURL) => {
 
 const getData = async (authToken, course) => {
   try {
-    // This probably has flaws, but we can move forward for now
     const getAllFolders = async (authToken, folder) => {
       return new Promise(async (resolve, reject) => {
         const foldersResponse = await getFolders(authToken, folder.folders_url);
@@ -147,6 +148,43 @@ const getData = async (authToken, course) => {
     return getAllFolders(authToken, course);
   } catch (error) {
     console.error(error);
+  }
+};
+
+const downloadCourse = async (authToken, course) => {
+  try {
+    await fs.mkdirSync(course.path);
+    const downloadRecurseFolders = async (folder, currentPath) => {
+      try {
+        return folder.items.forEach( async (element) => {
+          if (element.folder) {
+            await fs.mkdirSync(path.join(currentPath, element.name));
+            await downloadRecurseFolders(element, path.join(currentPath, element.name));
+          } else {
+            await request.get(element.url).then(async function(res) {
+              const buffer = Buffer.from(res, "utf8");
+              await fs.writeFileSync(path.join(currentPath, element.name), buffer);
+            });
+          }
+        })
+      } catch(err) {
+        console.error(err);
+      }
+    }
+    return course.items.forEach( async (element) => {
+      if (element.folder) {
+        // download everything in this folder and nested folders/create directories
+        await fs.mkdirSync(path.join(course.path, element.name));
+        await downloadRecurseFolders(element, path.join(course.path, element.name));
+      } else {
+        await request.get(element.url).then(async function(res) {
+          const buffer = Buffer.from(res, "utf8");
+          await fs.writeFileSync(path.join(course.path, element.name), buffer);
+        });
+      }
+    })
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -174,5 +212,5 @@ const getCourseItemsMap = async (authToken, course) => {
   return course;
 };
 
-export default { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
-// module.exports  { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
