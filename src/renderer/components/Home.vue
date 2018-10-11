@@ -6,7 +6,7 @@
         <v-card light>
           <v-card-text>
             <v-flex xs12>
-              <img height="150px" width="150px" id="logo" class="logo" src="~@/assets/icons_normal/icons/logo.svg" alt="electron-vue">
+              <img height="150px" width="150px" id="logo" class="logo" v-bind:src="logoURL" alt="electron-vue">
             </v-flex>
           </v-card-text>
         </v-card>
@@ -100,6 +100,7 @@
         isLoading: false,
         search: null,
         authToken: null,
+        logoURL: 'static/icons_normal/logo.png',
         authTokenRules: [
           v => !!v || 'auth token is required',
           v => (v && v.length > 10) || 'auth token is too short',
