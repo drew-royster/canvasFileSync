@@ -26,9 +26,9 @@ export default new Router({
       component: require('@/components/Configure').default,
     },
     {
-      path: '/progress',
-      name: 'Progress',
-      component: require('@/components/Progress').default,
+      path: '/download',
+      name: 'Download',
+      component: require('@/components/Download').default,
     },
   ],
 });

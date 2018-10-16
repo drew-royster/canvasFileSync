@@ -117,7 +117,7 @@ const getFiles = async (authToken, filesURL) => {
       name: element.display_name,
       url: element.url,
       folder: false,
-      lastUpdated: element.updated_at,
+      lastUpdated: null,
       size: element.size,
       sync: true,
       id: element.id,
@@ -152,55 +152,48 @@ const getData = async (authToken, course) => {
 };
 
 const downloadRecurseFolders = async (folder, currentPath) => {
-  try {
-    return folder.items.forEach( async (element) => {
-      if (element.folder) {
-        if (element.sync) {
-          //create folder if it doesn't exist
-          if (!fs.existsSync(path.join(currentPath, element.name))) {
-            await fs.mkdirSync(path.join(currentPath, element.name));
+  return new Promise(async (resolve, reject) => {
+    let allFolders = await Promise.resolve(folder.items).then(map(async (element, index) => {
+      try {
+        if (element.folder) {
+          if (element.sync) {
+            //create folder if it doesn't exist
+            if (!fs.existsSync(path.join(currentPath, element.name))) {
+              await fs.mkdirSync(path.join(currentPath, element.name));
+            }
+            await downloadRecurseFolders(element, path.join(currentPath, element.name));
           }
-          await downloadRecurseFolders(element, path.join(currentPath, element.name));
+        } else {
+          if (element.sync) {
+            await request.get(element.url).then(async function(res) {
+              const buffer = Buffer.from(res, "utf8");
+              await fs.writeFileSync(path.join(currentPath, element.name), buffer);
+              element.lastUpdated = Date.now();
+            }).catch((err => {
+              console.error(err);
+              console.error(element.url);
+              folder.items.delete(index);
+            }));
+          }
         }
-      } else {
-        if (element.sync) {
-          await request.get(element.url).then(async function(res) {
-            const buffer = Buffer.from(res, "utf8");
-            await fs.writeFileSync(path.join(currentPath, element.name), buffer);
-          });
-        }
+        return element;
+      } catch(err) {
+        console.error(err);
+        console.log(element);
       }
-    })
-  } catch(err) {
-    console.error(err);
-  }
+    }));
+    resolve(allFolders);
+  });
 };
 
 const downloadCourse = async (course) => {
   try {
-    //create folder if it doesn't exist
     if (!fs.existsSync(course.path)) {
       await fs.mkdirSync(course.path);
     }
-    return course.items.forEach( async (element) => {
-      if (element.folder) {
-        // download everything in this folder and nested folders/create directories
-        if (element.sync) {
-          //create folder if it doesn't exist
-          if (!fs.existsSync(path.join(course.path, element.name))) {
-            await fs.mkdirSync(path.join(course.path, element.name));
-          }
-          await downloadRecurseFolders(element, path.join(course.path, element.name));
-        }
-      } else {
-        if (element.sync) {
-          await request.get(element.url).then(async function(res) {
-            const buffer = Buffer.from(res, "utf8");
-            await fs.writeFileSync(path.join(course.path, element.name), buffer);
-          });
-        }
-      }
-    })
+    const updatedCourse = await downloadRecurseFolders(course, course.path);
+    course.items = updatedCourse;
+    return course;
   } catch (err) {
     console.error(err);
   }

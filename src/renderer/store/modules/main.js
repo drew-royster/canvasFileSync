@@ -48,7 +48,6 @@ const mutations = {
     state.itemsMap.push(payload);
   },
   SET_COURSE_MAP(state, payload) {
-    console.log(payload);
     const index = _.findIndex(state.itemsMap, { id: payload.id });
     state.itemsMap[index] = payload;
   },
@@ -72,7 +71,20 @@ const actions = {
         const copyCourse = Object.assign({}, course);
         const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
           copyCourse);
-        commit('SET_COURSE_MAP', { updatedCourse });
+        console.log(updatedCourse);
+        commit('SET_COURSE_MAP', updatedCourse);
+      }
+    });
+  },
+  downloadCourse({ commit }, payload) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const newCourse = await canvasIntegration.downloadCourse(payload);
+        commit('SET_COURSE_MAP', newCourse);
+        resolve(`Downloaded ${payload.name}`);
+      } catch (err) {
+        console.error(err);
+        reject();
       }
     });
   },
@@ -84,7 +96,7 @@ const actions = {
     commit('SET_ROOT_FOLDER', payload.rootFolder);
     commit('SET_COURSE_PATHS');
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
-    router.push('./progress');
+    router.push('./download');
   },
   goUniversityLogin({ commit }, payload) {
     commit('SET_ROOT_URL', payload.rootURL);
@@ -95,6 +107,9 @@ const actions = {
 const getters = {
   rootURL(state) {
     return state.rootURL;
+  },
+  itemsMap(state) {
+    return state.itemsMap;
   },
 };
 
