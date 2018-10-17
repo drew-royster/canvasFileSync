@@ -42,10 +42,14 @@
         progress: 0,
         numSyncableCourses: 0,
         numSynced: 0,
+        tips: [
+          'Need updates NOW? Click on the CFS icon in system tray and then "Sync Now"',
+          'CFS will overwrite any changes you make to files in the sync folder. Copy them somwhere else if you need to edit them.',
+          'Suggestions? Issues with the app? Tweet or DM @canvasfilesync',
+        ],
       };
     },
     mounted() {
-      // this.$store.dispatch('saveStateToDisk');
       const itemsMap = this.$store.getters.itemsMap;
       const itemsMapCopy = JSON.parse(JSON.stringify(itemsMap));
       itemsMapCopy.forEach(async (course) => {
@@ -60,6 +64,15 @@
           this.progress = (this.numSynced / this.numSyncableCourses) * 100;
         }
       });
+    },
+    watch: {
+      numSynced() {
+        console.log(`numSynced:${this.numSynced} - numSyncable:${this.numSyncableCourses}`);
+        if (this.numSynced === this.numSyncableCourses) {
+          this.progressMessage = 'Done';
+          this.$store.dispatch('saveStateToDisk');
+        }
+      },
     },
   };
 </script>

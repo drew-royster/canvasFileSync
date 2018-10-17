@@ -30,10 +30,9 @@ const mutations = {
   SET_ROOT_FOLDER(state, payload) {
     state.rootFolder = payload;
   },
-  SET_COURSE_PATHS(state) {
-    state.itemsMap.forEach((course, index) => {
-      state.itemsMap[index].path = path.join(state.rootFolder, course.name);
-    });
+  SET_COURSE_PATH(state, payload) {
+    const index = _.findIndex(state.itemsMap, { id: payload.id });
+    state.itemsMap[index].path = payload.path;
   },
   SET_ROOT_URL(state, payload) {
     state.rootURL = payload;
@@ -89,12 +88,22 @@ const actions = {
     });
   },
   saveStateToDisk({ commit }) {
-    dataStorage.saveCurrentState(state);
-    commit('SET_DISK_MATCHES_STATE');
+    return new Promise(async (resolve, reject) => {
+      const savedSuccessfully = dataStorage.saveCurrentState(state);
+      if (savedSuccessfully) {
+        commit('SET_DISK_MATCHES_STATE');
+        resolve(savedSuccessfully);
+      } else {
+        reject('Error saving currest state');
+      }
+    });
   },
   beginInitialSync({ commit }, payload) {
     commit('SET_ROOT_FOLDER', payload.rootFolder);
-    commit('SET_COURSE_PATHS');
+    state.itemsMap.forEach((course) => {
+      console.log(course.name);
+      commit('SET_COURSE_PATH', { id: course.id, path: path.join(state.rootFolder, course.name) });
+    });
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
     router.push('./download');
   },
