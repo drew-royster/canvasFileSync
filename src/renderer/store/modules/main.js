@@ -70,7 +70,6 @@ const actions = {
         const copyCourse = Object.assign({}, course);
         const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
           copyCourse);
-        console.log(updatedCourse);
         commit('SET_COURSE_MAP', updatedCourse);
       }
     });
@@ -101,7 +100,6 @@ const actions = {
   beginInitialSync({ commit }, payload) {
     commit('SET_ROOT_FOLDER', payload.rootFolder);
     state.itemsMap.forEach((course) => {
-      console.log(course.name);
       commit('SET_COURSE_PATH', { id: course.id, path: path.join(state.rootFolder, course.name) });
     });
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
