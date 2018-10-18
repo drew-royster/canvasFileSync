@@ -76,7 +76,7 @@ const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
 
 
 //Right now this will only get 100 folders may want to add recursion into this as well
-const getFolders = async (authToken, folderURL) => {
+const getFolders = async (authToken, folderURL, currentPath) => {
   const options = {
     method: 'GET',
     uri: `${folderURL}/?per_page=100`,
@@ -86,24 +86,23 @@ const getFolders = async (authToken, folderURL) => {
   };
   const foldersResponse = await request(options);
   return Promise.resolve(foldersResponse).then(map(async (element) => {
+    const folderPath = path.join(currentPath, element.name);
     return {
       name: element.name,
-      folder: true,
       lastUpdated: element.updated_at,
       folders_count: element.folders_count,
       folders_url: element.folders_url,
       files_count: element.files_count,
       files_url: element.files_url,
-      size: 0,
       sync: true,
       id: element.id,
-      items: [],
+      folderPath,
     }
   }));
 };
 
 //Right now this will only get 100 files may want to add recursion into this as well
-const getFiles = async (authToken, filesURL) => {
+const getFiles = async (authToken, filesURL, currentPath) => {
   const options = {
     method: 'GET',
     uri: `${filesURL}/?per_page=100`,
@@ -113,6 +112,8 @@ const getFiles = async (authToken, filesURL) => {
   };
   const filesResponse = await request(options);
   return Promise.resolve(filesResponse).then(map(async (element) => {
+    const filePath = path.join(currentPath, element.display_name);
+
     return {
       name: element.display_name,
       url: element.url,
@@ -121,31 +122,36 @@ const getFiles = async (authToken, filesURL) => {
       size: element.size,
       sync: true,
       id: element.id,
+      filePath,
     }
   }));
 };
 
 const getData = async (authToken, course) => {
   try {
-    const getAllFolders = async (authToken, folder) => {
+    let folders = [];
+    let files = [];
+    const getAllFolders = async (authToken, folder, currentPath) => {
       return new Promise(async (resolve, reject) => {
-        const foldersResponse = await getFolders(authToken, folder.folders_url);
+        const foldersResponse = await getFolders(authToken, folder.folders_url, currentPath);
         let allFolders = await Promise.resolve(foldersResponse).then(map(async (element) => {
           if (element.folders_count > 0) {
-            const folderItems = await getAllFolders(authToken, element);
-            const fileItems = await getFiles(authToken, element.files_url);
-            element.items = folderItems.concat(fileItems);
+            const folderItems = await getAllFolders(authToken, element, element.folderPath);
+            folders = folders.concat(folderItems);
+            const fileItems = await getFiles(authToken, element.files_url, currentPath);
+            files = files.concat(fileItems);
           }
           else {
-            const fileItems = await getFiles(authToken, element.files_url);
-            element.items = fileItems;
+            const fileItems = await getFiles(authToken, element.files_url, currentPath);
+            files = files.concat(fileItems);
           }
           return element;
         }));
         resolve(allFolders);
       });
     };
-    return getAllFolders(authToken, course);
+    await getAllFolders(authToken, course, course.name);
+    return { folders, files };
   } catch (error) {
     console.error(error);
   }
@@ -217,11 +223,17 @@ const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
 };
 
 const getCourseItemsMap = async (authToken, course) => {
-  let results = await getData(authToken, course);
-  const filesResponse = await getFiles(authToken, course.files_url);
-  course.items = results.concat(filesResponse);
+  let { folders, files } = await getData(authToken, course);
+  const filesResponse = await getFiles(authToken, course.files_url, course.name);
+  files = files.concat(filesResponse);
+  course.files = files;
+  course.folders = folders;
+  // console.log('files\n');
+  // console.log(JSON.stringify(files, null, 2));
+  // console.log('folders\n');
+  // console.log(JSON.stringify(folders, null, 2));
   return course;
 };
 
-export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
-// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+// export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };

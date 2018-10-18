@@ -1078,15 +1078,15 @@ const numerics = {
   "folders_url": "https://uvu.instructure.com/api/v1/folders/3183075/folders"
 };
 
-canvasIntegration.downloadCourse(networks).then((course) => {
-  const jsonResults = JSON.stringify(course);
-  fs.writeFile("./items.json", jsonResults, 'utf8', function (err) {
-    if (err) {
-        return console.log(err);
-    }
-    console.log("The file was saved!");
-  });    
-});
+// canvasIntegration.downloadCourse(networks).then((course) => {
+//   const jsonResults = JSON.stringify(course);
+//   fs.writeFile("./items.json", jsonResults, 'utf8', function (err) {
+//     if (err) {
+//         return console.log(err);
+//     }
+//     console.log("The file was saved!");
+//   });    
+// });
 
 // const jsonResults = JSON.stringify(course);
 // fs.writeFile("./items.json", jsonResults, 'utf8', function (err) {
@@ -1096,6 +1096,8 @@ canvasIntegration.downloadCourse(networks).then((course) => {
 //   console.log("The file was saved!");
 // });  
 
-// const course = {"id":1,"name":"Example Course","account_id":3,"folders_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/folders","files_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/files","items":[]}
+const course = {"id":1,"name":"Example Course","account_id":3,"folders_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/folders","files_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/files","items":[]}
 
-// getCourseItemsMap('MvYujAXDbZEodUwe1CarI42IRABT5p04yU9lJoerbGzjyrJRjzyxAC8NR8DqpeJs', course);
+canvasIntegration.getCourseItemsMap('MvYujAXDbZEodUwe1CarI42IRABT5p04yU9lJoerbGzjyrJRjzyxAC8NR8DqpeJs', course).then((results) => {
+  console.log(JSON.stringify(results, null, 2));
+})
