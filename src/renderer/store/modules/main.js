@@ -4,7 +4,6 @@ const canvasIntegrationFile = require('../../../utils/canvasIntegration');
 const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
-const path = require('path');
 const _ = require('lodash');
 
 const state = {
@@ -14,6 +13,7 @@ const state = {
   syncFrequency: null,
   itemsMap: [],
   matchesPersistentStorage: false,
+  generatedItemsMap: false,
 };
 
 const mutations = {
@@ -29,10 +29,6 @@ const mutations = {
   },
   SET_ROOT_FOLDER(state, payload) {
     state.rootFolder = payload;
-  },
-  SET_COURSE_PATH(state, payload) {
-    const index = _.findIndex(state.itemsMap, { id: payload.id });
-    state.itemsMap[index].path = payload.path;
   },
   SET_ROOT_URL(state, payload) {
     state.rootURL = payload;
@@ -50,30 +46,44 @@ const mutations = {
     const index = _.findIndex(state.itemsMap, { id: payload.id });
     state.itemsMap[index] = payload;
   },
+  ADDED_ALL_COURSES(state) {
+    state.generatedItemsMap = true;
+  },
 };
 
 const actions = {
   connect({ commit }) {
     canvasIntegration.getActiveCanvasCourses(
       state.authToken, state.rootURL).then((response) => {
+      let coursesAdded = 0;
       if (response.success) {
         response.response.forEach(async (courseItem) => {
-          commit('ADD_COURSE', courseItem);
+          if (courseItem.sync) {
+            const course = await canvasIntegration.getCourseItemsMap(state.authToken, courseItem);
+            commit('ADD_COURSE', course);
+          } else {
+            commit('ADD_COURSE', courseItem);
+          }
+          coursesAdded += 1;
+          if (coursesAdded === response.response.length) {
+            console.log('this executed');
+            commit('ADDED_ALL_COURSES');
+          }
         });
         router.push('/configure');
       }
     });
   },
-  generateFilesMap({ commit }) {
-    state.itemsMap.forEach(async (course) => {
-      if (course.sync) {
-        const copyCourse = Object.assign({}, course);
-        const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
-          copyCourse);
-        commit('SET_COURSE_MAP', updatedCourse);
-      }
-    });
-  },
+  // generateFilesMap({ commit }) {
+  //   state.itemsMap.forEach(async (course) => {
+  //     if (course.sync) {
+  //       const copyCourse = Object.assign({}, course);
+  //       const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
+  //         copyCourse);
+  //       commit('SET_COURSE_MAP', updatedCourse);
+  //     }
+  //   });
+  // },
   downloadCourse({ commit }, payload) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -99,9 +109,6 @@ const actions = {
   },
   beginInitialSync({ commit }, payload) {
     commit('SET_ROOT_FOLDER', payload.rootFolder);
-    state.itemsMap.forEach((course) => {
-      commit('SET_COURSE_PATH', { id: course.id, path: path.join(state.rootFolder, course.name) });
-    });
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
     router.push('./download');
   },
@@ -117,6 +124,12 @@ const getters = {
   },
   itemsMap(state) {
     return state.itemsMap;
+  },
+  generatedItemsMap(state) {
+    return state.generatedItemsMap;
+  },
+  rootFolder(state) {
+    return state.rootFolder;
   },
 };
 

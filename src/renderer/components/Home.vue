@@ -136,7 +136,8 @@
         if (this.$refs.form.validate()) {
           try {
             if (this.manual) {
-              this.$store.commit('SET_CONNECTION_PARAMETERS', { rootURL: this.schoolURL, authToken: this.authToken });
+              const cleanURL = this.cleanURL(this.schoolURL);
+              this.$store.commit('SET_CONNECTION_PARAMETERS', { rootURL: cleanURL, authToken: this.authToken });
               this.$store.dispatch('connect');
             } else {
               this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
@@ -145,6 +146,13 @@
             console.error(err);
           }
         }
+      },
+      cleanURL(url) {
+        let cleanedURL = url.replace('http://', '').replace('https://', '');
+        if (cleanedURL.substring(cleanedURL.length - 1) === '/') {
+          cleanedURL = cleanedURL.substring(0, cleanedURL.length - 1);
+        }
+        return cleanedURL;
       },
     },
   };

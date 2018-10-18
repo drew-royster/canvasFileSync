@@ -4,6 +4,7 @@ const path = require('path');
 const applicationMenu = require('./application-menus');
 const dataStorageFile = require('../utils/dataStorage');
 const moment = require('moment');
+const { download } = require('electron-dl');
 const dataStorage = dataStorageFile.default;
 
 
@@ -109,6 +110,12 @@ app.on('window-all-closed', () => {
 ipcMain.on('choose-folder', (event) => {
   const folder = dialog.showOpenDialog({ properties: ['openDirectory'] });
   event.sender.send('chose-folder', folder);
+});
+
+ipcMain.on('download-file', (e, args) => {
+  download(BrowserWindow.getFocusedWindow(), args.url, { filename: args.filename })
+    .then(dl => console.log(dl.getSavePath()))
+    .catch(console.error);
 });
 
 app.on('activate', () => {

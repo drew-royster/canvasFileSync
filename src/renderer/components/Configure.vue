@@ -1,67 +1,104 @@
 <template>
   <v-content>
-    <v-layout id="main-content" row>
-      <v-flex xs2></v-flex>
-      <v-flex xs8>
-        <v-container>
-          <v-stepper v-model="step">
-            <v-stepper-header>
-              <v-stepper-step :complete="step > 1" step="1">What to sync?</v-stepper-step>
-        
-              <v-divider></v-divider>
-        
-              <v-stepper-step :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
-        
-              <v-divider></v-divider>
-        
-              <v-stepper-step step="3">How often?</v-stepper-step>
-            </v-stepper-header>
-        
-            <v-stepper-items>
-              <v-stepper-content step="1">
-                <v-card
-                  class="mb-5"
-                >
-                <h1><i>Coming Soon!</i></h1>
-                </v-card>
-        
-                <v-btn
-                  color="primary"
-                  @click="step = 2"
-                >
-                  Continue
-                </v-btn>
-        
-                <v-btn flat>Cancel</v-btn>
-              </v-stepper-content>
-        
-              <v-stepper-content step="2">
-                <v-card
-                  class="mb-5"
-                >
-                  <v-flex large text-xs-center>
-                    <v-btn @click="chooseFolder">{{ folder }}</v-btn>
+    <v-layout mt-5 justify-center align-center row>
+      <v-flex xs12 sm10>
+        <v-layout v-if="!generatedItemsMap" justify-center align-center>
+          <v-progress-circular
+            :size="400"
+            :width="30"
+            indeterminate
+            color="#F79520"
+          >
+            <h1>
+              Getting courses from Canvas
+            </h1>
+          </v-progress-circular>  
+        </v-layout>
+        <v-stepper v-else v-model="step" vertical>        
+          <v-stepper-step :complete="step > 1" step="1">What will sync?</v-stepper-step>
+          <v-stepper-items>
+            <v-stepper-content step="1">
+              <v-card class="mb-3">
+                <v-layout row>
+                  <v-flex>
+                    <v-card>
+                    <v-toolbar primary dark>
+                    <v-toolbar-title>Courses</v-toolbar-title>
+                    </v-toolbar>
+                    <v-list>
+                      <v-list-tile
+                      v-for="course in itemsMap"
+                      :key="course.id"
+                      >
+                      <v-list-tile-action>
+                        <v-btn v-if="course.sync" icon ripple>
+                          <v-icon color="green">class</v-icon>
+                        </v-btn>
+                        <v-btn v-else icon ripple>
+                          <v-icon color="red">class</v-icon>
+                        </v-btn>
+                      </v-list-tile-action>
+                      <v-list-tile-content>
+                      <v-list-tile-title v-if="course.sync">
+                        {{ course.name }}
+                      </v-list-tile-title>
+                      <v-list-tile-title v-else>
+                        {{ course.name }} - <v-tooltip bottom>
+                          <span slot="activator"><i>Disabled</i></span>
+                          <span>Courses using modules not currently syncable</span>
+                        </v-tooltip>
+                      </v-list-tile-title>
+                      </v-list-tile-content>
+                      </v-list-tile>
+                    </v-list>
+                    </v-card>
                   </v-flex>
-                </v-card>
-        
-                <v-btn
-                  color="primary"
-                  @click="step = 3"
-                >
-                  Continue
-                </v-btn>
-        
-                <v-btn flat>Cancel</v-btn>
-              </v-stepper-content>
-        
-              <v-stepper-content step="3">
-                <v-card
-                  class="mb-5"
-                >
+                </v-layout>
+              </v-card>
+              <v-btn
+                color="primary"
+                @click="step = 2"
+              >
+                Continue
+              </v-btn>
+            </v-stepper-content>
+      
+            <v-stepper-step :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
+            <v-stepper-content step="2">
+              <v-card
+                class="mb-5"
+              >
+                <v-flex large text-xs-center>
+                  <v-btn @click="chooseFolder">{{ folder }}</v-btn>
+                </v-flex>
+              </v-card>
+
+              <v-btn
+                v-if="folderChosen"
+                color="primary"
+                @click="step = 3"
+              >
+                Continue
+              </v-btn>
+              <v-btn
+                v-else
+                color="primary"
+                @click="step = 3"
+                disabled
+              >
+                Continue
+              </v-btn>
+            </v-stepper-content>
+            
+            <v-stepper-step step="3">How often?</v-stepper-step>
+            <v-stepper-content step="3">
+              <v-card>
                 <v-layout align-baseline row>
-                  <v-flex xs7>
-                    <h1>I would like to sync every</h1>
+                  <v-flex>
+                    <h1>Sync every</h1>
                   </v-flex>
+                </v-layout>
+                <v-layout align-baseline row>
                   <v-flex xs1>
                     <v-text-field
                       v-model="syncFrequency"
@@ -69,27 +106,23 @@
                       type="number"
                     ></v-text-field>
                   </v-flex>
-                  <v-flex xs2>
+                </v-layout>
+                <v-layout align-baseline row>
+                  <v-flex>
                     <h1>minutes</h1>
                   </v-flex>
-                  <v-flex xs2></v-flex>
                 </v-layout>
-                </v-card>
-        
-                <v-btn
-                  color="primary"
-                  @click="beginSync"
-                >
-                  Continue
-                </v-btn>
-        
-                <v-btn flat>Cancel</v-btn>
-              </v-stepper-content>
-            </v-stepper-items>
-          </v-stepper>
-        </v-container>
+              </v-card>
+              <v-btn
+                color="primary"
+                @click="beginSync"
+              >
+                Continue
+              </v-btn>
+            </v-stepper-content>
+          </v-stepper-items>
+        </v-stepper>
       </v-flex>
-      <v-flex xs2></v-flex>
     </v-layout>
   </v-content>
 </template>
@@ -105,6 +138,14 @@
         folder: 'Choose Folder',
         folderChosen: false,
       };
+    },
+    computed: {
+      itemsMap() {
+        return this.$store.getters.itemsMap;
+      },
+      generatedItemsMap() {
+        return this.$store.getters.generatedItemsMap;
+      },
     },
     watch: {
       search(val) {
@@ -143,7 +184,6 @@
       },
     },
     mounted() {
-      this.$store.dispatch('generateFilesMap');
       this.$electron.ipcRenderer.on('chose-folder', (event, data) => {
         this.folderChosen = true;
         this.folder = data[0];
@@ -165,12 +205,6 @@
     margin-top: 5%;
     max-width: 100%;
   }
-
-  #main-content
-  {
-    margin-top: 2%;
-  }
-
   .link-btn
   {
     width: 150px;

@@ -2,6 +2,8 @@
 const canvasIntegration = require('./canvasIntegration');
 console.log(canvasIntegration);
 const fs = require('fs');
+const _ = require('lodash');
+const path = require('path');
 
 const networks = {
   "id": 458739,
@@ -1096,8 +1098,53 @@ const numerics = {
 //   console.log("The file was saved!");
 // });  
 
-const course = {"id":1,"name":"Example Course","account_id":3,"folders_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/folders","files_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/files","items":[]}
+// const course = {"id":1,"name":"Example Course","account_id":3,"folders_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/folders","files_url":"http://ec2-18-233-226-106.compute-1.amazonaws.com/api/v1/folders/1/files","items":[]}
 
-canvasIntegration.getCourseItemsMap('MvYujAXDbZEodUwe1CarI42IRABT5p04yU9lJoerbGzjyrJRjzyxAC8NR8DqpeJs', course).then((results) => {
-  console.log(JSON.stringify(results, null, 2));
-})
+let courses = [];
+let coursesAdded = 0;
+let bytesToBeDownloaded = 0;
+let filesToBeDownloaded = [];
+let foldersToBeCreated = [];
+const rootDIR = "/Users/drewroyster/Documents/classes";
+
+canvasIntegration.getActiveCanvasCourses(
+  '1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', 'uvu.instructure.com').then((response) => {
+    response.response.forEach(async (courseItem) => {
+      if (courseItem.sync) {
+        courses.push(await canvasIntegration.getCourseItemsMap('1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', courseItem));
+      } else {
+        courses.push(courseItem);
+      }
+      coursesAdded += 1;
+      if (coursesAdded === response.response.length) {
+        const onlySyncable = _.filter(courses, (course) => { return course.sync });
+        _.forEach(onlySyncable, (course) => {
+          const courseSum = _.sumBy(course.files, (file) => { return file.size });
+          bytesToBeDownloaded += courseSum;
+          const filesArray = _.map(course.files, (file) => {
+            return {
+              url: file.url,
+              fullPath: path.join(rootDIR, file.filePath),
+              name: file.name,
+              courseID: course.id,
+              size: file.size,
+            }
+          });
+          const foldersArray = _.map(course.folders, (folder) => {
+            // console.log(folder);
+            return path.join(rootDIR, folder.folderPath);
+          });
+          // console.log(foldersArray);
+          foldersToBeCreated = foldersToBeCreated.concat(foldersArray);
+          filesToBeDownloaded = filesToBeDownloaded.concat(filesArray);
+        })
+        console.log(foldersToBeCreated);
+        console.log(foldersToBeCreated.length);
+        console.log(filesToBeDownloaded.length);
+      }
+    });
+  });
+
+// canvasIntegration.getCourseItemsMap('MvYujAXDbZEodUwe1CarI42IRABT5p04yU9lJoerbGzjyrJRjzyxAC8NR8DqpeJs', course).then((results) => {
+//   console.log(JSON.stringify(results, null, 2));
+// })

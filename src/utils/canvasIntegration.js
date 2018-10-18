@@ -1,9 +1,11 @@
 /* eslint-disable */
 const request = require('request-promise');
+const Promise = require('bluebird');
 const map = require('promise-map');
 const path = require('path');
 const fs = require('fs');
 const log = require('electron-log');
+const _ = require('lodash');
 
 const getActiveCanvasCourses = async (
   authToken,
@@ -17,19 +19,14 @@ const getActiveCanvasCourses = async (
       json: true,
       encoding: null,
     };
-    console.log(rootURL);
-    console.log(authToken);
     const activeCoursesResponse = await request(options);
-    console.log(activeCoursesResponse);
     const activeCourses = await Promise.resolve(activeCoursesResponse).then(map(async (element) => {
       const sync = await hasAccessToFilesAPI(authToken, rootURL, element.id);
       if (sync) {
         const { files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, element.id);
         return { id: element.id,
           sync: true,
-          path: '',
           name: element.name.split('|')[0].trim(),
-          items: [],
           folder: true,
           files_url,
           folders_url,
@@ -90,6 +87,7 @@ const getFolders = async (authToken, folderURL, currentPath) => {
     return {
       name: element.name,
       lastUpdated: element.updated_at,
+      folder: true,
       folders_count: element.folders_count,
       folders_url: element.folders_url,
       files_count: element.files_count,
@@ -127,35 +125,42 @@ const getFiles = async (authToken, filesURL, currentPath) => {
   }));
 };
 
-const getData = async (authToken, course) => {
+const findAllFolders = async (authToken, course) => {
   try {
-    let folders = [];
-    let files = [];
-    const getAllFolders = async (authToken, folder, currentPath) => {
-      return new Promise(async (resolve, reject) => {
-        const foldersResponse = await getFolders(authToken, folder.folders_url, currentPath);
-        let allFolders = await Promise.resolve(foldersResponse).then(map(async (element) => {
-          if (element.folders_count > 0) {
-            const folderItems = await getAllFolders(authToken, element, element.folderPath);
-            folders = folders.concat(folderItems);
-            const fileItems = await getFiles(authToken, element.files_url, currentPath);
-            files = files.concat(fileItems);
-          }
-          else {
-            const fileItems = await getFiles(authToken, element.files_url, currentPath);
-            files = files.concat(fileItems);
-          }
-          return element;
-        }));
-        resolve(allFolders);
-      });
-    };
-    await getAllFolders(authToken, course, course.name);
-    return { folders, files };
+    const findFolders = (authToken, folder, currentPath, files = []) => {
+      return getFolders(authToken, folder.folders_url, currentPath)
+        .then((items) => { // items = files || dirs
+          // items figures as list of tasks, settled promise means task is completed
+          return Promise.map(items, (item) => {
+              files.push(item);
+              if (item.folders_count > 0) {
+                return findFolders(authToken, item, item.folderPath, files);
+              } 
+          }) 
+        })
+        .then(() => {
+          // every task is completed, provide results
+          return files
+        })
+    }
+    return findFolders(authToken, course, course.name);
   } catch (error) {
     console.error(error);
   }
 };
+
+const findAllFiles = async (authToken, folders) => {
+  try {
+    let files = [];
+    await Promise.map(folders, async (folder) => {
+      const folderFiles = await getFiles(authToken, folder.files_url, folder.folderPath);
+      files = files.concat(folderFiles);
+    })
+    return files;
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 const downloadRecurseFolders = async (folder, currentPath) => {
   return new Promise(async (resolve, reject) => {
@@ -223,17 +228,14 @@ const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
 };
 
 const getCourseItemsMap = async (authToken, course) => {
-  let { folders, files } = await getData(authToken, course);
+  const folders = await findAllFolders(authToken, course);
+  let files = await findAllFiles(authToken, folders);
   const filesResponse = await getFiles(authToken, course.files_url, course.name);
   files = files.concat(filesResponse);
   course.files = files;
   course.folders = folders;
-  // console.log('files\n');
-  // console.log(JSON.stringify(files, null, 2));
-  // console.log('folders\n');
-  // console.log(JSON.stringify(folders, null, 2));
   return course;
 };
 
-// export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
-module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
