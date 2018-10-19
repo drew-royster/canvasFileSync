@@ -18,10 +18,9 @@
           <v-stepper-step :complete="step > 1" step="1">What will sync?</v-stepper-step>
           <v-stepper-items>
             <v-stepper-content step="1">
-              <v-card class="mb-3">
+              <v-card >
                 <v-layout row>
                   <v-flex>
-                    <v-card>
                     <v-toolbar primary dark>
                     <v-toolbar-title>Courses</v-toolbar-title>
                     </v-toolbar>
@@ -51,7 +50,6 @@
                       </v-list-tile-content>
                       </v-list-tile>
                     </v-list>
-                    </v-card>
                   </v-flex>
                 </v-layout>
               </v-card>
@@ -65,13 +63,9 @@
       
             <v-stepper-step :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
             <v-stepper-content step="2">
-              <v-card
-                class="mb-5"
-              >
-                <v-flex large text-xs-center>
-                  <v-btn @click="chooseFolder">{{ folder }}</v-btn>
+                <v-flex mb-2 large>
+                  <v-btn large @click="chooseFolder">{{ folder }}</v-btn>
                 </v-flex>
-              </v-card>
 
               <v-btn
                 v-if="folderChosen"
@@ -92,27 +86,25 @@
             
             <v-stepper-step step="3">How often?</v-stepper-step>
             <v-stepper-content step="3">
-              <v-card>
-                <v-layout align-baseline row>
-                  <v-flex>
-                    <h1>Sync every</h1>
-                  </v-flex>
-                </v-layout>
-                <v-layout align-baseline row>
-                  <v-flex xs1>
-                    <v-text-field
-                      v-model="syncFrequency"
-                      class="mt-0 headline"
-                      type="number"
-                    ></v-text-field>
-                  </v-flex>
-                </v-layout>
-                <v-layout align-baseline row>
-                  <v-flex>
-                    <h1>minutes</h1>
-                  </v-flex>
-                </v-layout>
-              </v-card>
+              <v-layout align-baseline row>
+                <v-flex>
+                  <h1>Sync every</h1>
+                </v-flex>
+              </v-layout>
+              <v-layout align-baseline row>
+                <v-flex xs1>
+                  <v-text-field
+                    v-model="syncFrequency"
+                    class="mt-0 headline"
+                    type="number"
+                  ></v-text-field>
+                </v-flex>
+              </v-layout>
+              <v-layout align-baseline row>
+                <v-flex>
+                  <h1>minutes</h1>
+                </v-flex>
+              </v-layout>
               <v-btn
                 color="primary"
                 @click="beginSync"

@@ -1,11 +1,12 @@
 // const { app, BrowserWindow, Menu, dialog, Tray } = require("electron");
-import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
+import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, ipcRenderer } from 'electron' // eslint-disable-line
 const path = require('path');
 const applicationMenu = require('./application-menus');
 const dataStorageFile = require('../utils/dataStorage');
 const moment = require('moment');
-const { download } = require('electron-dl');
 const dataStorage = dataStorageFile.default;
+const fs = require('fs');
+const request = require('request-promise');
 
 
 /**
@@ -113,9 +114,32 @@ ipcMain.on('choose-folder', (event) => {
 });
 
 ipcMain.on('download-file', (e, args) => {
-  download(BrowserWindow.getFocusedWindow(), args.url, { filename: args.filename })
-    .then(dl => console.log(dl.getSavePath()))
-    .catch(console.error);
+  const { options, file } = args;
+  console.log(file.name);
+  request.get(options).then(async (res) => {
+    const buffer = Buffer.from(res, 'utf8');
+    fs.writeFile(file.fullPath, buffer, (err) => {
+      if (err) {
+        console.error(err);
+      } else {
+        e.sender.send('file-downloaded', file);
+      }
+    });
+  });
+});
+
+ipcMain.on('create-folder', (event, folder) => {
+  fs.access(folder, fs.constants.F_OK, (err) => {
+    console.log(`${folder} ${err ? 'does not exist' : 'exists'}`);
+    if (err) {
+      fs.mkdir(folder, (err) => {
+        console.log(`${folder} ${err ? 'not created' : 'created'}`);
+        event.sender.send('folder-created', folder);
+      });
+    } else {
+      event.sender.send('folder-created', folder);
+    }
+  });
 });
 
 app.on('activate', () => {
@@ -128,6 +152,13 @@ const updateMenu = (template) => {
   const menu = Menu.buildFromTemplate(template);
   tray.setContextMenu(menu);
 };
+
+// const downloadItem = (options, file) => {
+//   return request.get(options).then(async (res) => {
+//     const buffer = Buffer.from(res, 'utf8');
+//     return fs.writeFileSync(file.fullPath, buffer);
+//   });
+// };
 
 /**
  * Auto Updater
