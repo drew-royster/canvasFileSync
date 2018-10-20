@@ -61,6 +61,10 @@ const getRootURL = async () => {
   return store.get('rootURL');
 };
 
+const getRootFolder = async () => {
+  return store.get('rootFolder');
+};
+
 export default {
   isConnected,
   saveCurrentState,
@@ -68,4 +72,5 @@ export default {
   getLastSynced,
   getAuthToken,
   getRootURL,
+  getRootFolder,
 };

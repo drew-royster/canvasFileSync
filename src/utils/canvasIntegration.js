@@ -197,6 +197,7 @@ const hasNewFolder = async (authToken, rootURL, courseID, lastSynced) => {
       encoding: null,
     };
     const foldersLastUpdated = await request(options);
+    // theoretically this works, but it is not yet tested all the way through
     if (new Date(foldersLastUpdated[0].updated_at) > new Date(lastSynced)) {
       return true;
     } else {

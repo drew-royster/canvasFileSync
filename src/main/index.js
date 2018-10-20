@@ -156,6 +156,7 @@ const sync = async (lastSynced) => {
   const courses = await dataStorage.getCourses();
   const authToken = await dataStorage.getAuthToken();
   const rootURL = await dataStorage.getRootURL();
+  const rootFolder = await dataStorage.getRootFolder();
   _.forEach(courses, async (course) => {
     if (course.sync) {
       const newFolder = await canvasIntegration.hasNewFolder(authToken,
@@ -165,7 +166,14 @@ const sync = async (lastSynced) => {
       );
       if (newFolder) {
         const folders = await canvasIntegration.findAllFolders(authToken, course);
-        console.log(folders);
+        _.forEach(folders, async (folder) => {
+          try {
+            await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
+            await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
+          } catch (err) {
+            console.error('Folder already exists');
+          }
+        });
       }
     }
   });
