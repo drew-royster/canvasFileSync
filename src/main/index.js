@@ -130,7 +130,7 @@ ipcMain.on('download-file', async (e, args) => {
 });
 
 ipcMain.on('create-folder', (event, folder) => {
-  fs.access(folder, fs.constants.F_OK, (err) => {
+  fs.access(path.resolve(folder), fs.constants.F_OK, (err) => {
     if (err) {
       fs.mkdir(folder, () => {
         event.sender.send('folder-created', folder);
