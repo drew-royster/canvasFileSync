@@ -19,7 +19,6 @@ if (process.env.NODE_ENV !== 'development') {
 
 let mainWindow;
 let tray;
-const lastSynced = Date.now();
 const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
@@ -95,7 +94,8 @@ app.on('ready', async () => {
 
   if (await dataStorage.isConnected()) {
     if (app.dock) app.dock.hide();
-    updateMenu(getUpdatedConnectedMenu(lastSynced));
+    console.log(await dataStorage.getLastSynced());
+    updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
   } else {
     updateMenu(notConnectedMenu);
     createWindow();
@@ -103,9 +103,7 @@ app.on('ready', async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (app.dock) app.dock.hide();
 });
 
 ipcMain.on('choose-folder', (event) => {
@@ -113,27 +111,23 @@ ipcMain.on('choose-folder', (event) => {
   event.sender.send('chose-folder', folder);
 });
 
-ipcMain.on('download-file', (e, args) => {
+ipcMain.on('download-file', async (e, args) => {
   const { options, file } = args;
-  console.log(file.name);
-  request.get(options).then(async (res) => {
-    const buffer = Buffer.from(res, 'utf8');
-    fs.writeFile(file.fullPath, buffer, (err) => {
-      if (err) {
-        console.error(err);
-      } else {
-        e.sender.send('file-downloaded', file);
-      }
-    });
-  });
+  try {
+    const response = await request.get(options);
+    const buffer = Buffer.from(response, 'utf8');
+    await fs.writeFileSync(file.fullPath, buffer);
+    return e.sender.send('file-downloaded', file);
+  } catch (err) {
+    console.error(err);
+    return e.sender.send('file-download-failed', file);
+  }
 });
 
 ipcMain.on('create-folder', (event, folder) => {
   fs.access(folder, fs.constants.F_OK, (err) => {
-    console.log(`${folder} ${err ? 'does not exist' : 'exists'}`);
     if (err) {
-      fs.mkdir(folder, (err) => {
-        console.log(`${folder} ${err ? 'not created' : 'created'}`);
+      fs.mkdir(folder, () => {
         event.sender.send('folder-created', folder);
       });
     } else {
@@ -152,13 +146,6 @@ const updateMenu = (template) => {
   const menu = Menu.buildFromTemplate(template);
   tray.setContextMenu(menu);
 };
-
-// const downloadItem = (options, file) => {
-//   return request.get(options).then(async (res) => {
-//     const buffer = Buffer.from(res, 'utf8');
-//     return fs.writeFileSync(file.fullPath, buffer);
-//   });
-// };
 
 /**
  * Auto Updater

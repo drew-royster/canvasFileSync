@@ -3,11 +3,7 @@ const store = new Store();
 
 const saveCurrentState = async (state) => {
   try {
-    store.set('authToken', state.authToken);
-    store.set('rootURL', state.rootURL);
-    store.set('rootFolder', state.rootFolder);
-    store.set('syncFrequency', state.syncFrequency);
-    store.set('itemsMap', state.itemsMap);
+    Object.entries(state).forEach(([key, value]) => store.set(key, value));
     return true;
   } catch (err) {
     console.error(err);
@@ -47,4 +43,8 @@ const isConnected = async () => {
   return false;
 };
 
-export default { isConnected, saveCurrentState, getSavedState };
+const getLastSynced = async () => {
+  return store.get('lastSynced');
+};
+
+export default { isConnected, saveCurrentState, getSavedState, getLastSynced };

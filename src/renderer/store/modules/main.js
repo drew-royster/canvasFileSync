@@ -14,6 +14,7 @@ const state = {
   itemsMap: [],
   matchesPersistentStorage: false,
   generatedItemsMap: false,
+  lastSynced: null,
 };
 
 const mutations = {
@@ -46,8 +47,17 @@ const mutations = {
     const index = _.findIndex(state.itemsMap, { id: payload.id });
     state.itemsMap[index] = payload;
   },
+  DOWNLOADED_FILE(state, payload) {
+    const courseIndex = _.findIndex(state.itemsMap, { id: payload.courseID });
+    const fileIndex = _.findIndex(state.itemsMap[courseIndex].files,
+      { filePath: payload.filePath });
+    state.itemsMap[courseIndex].files[fileIndex].lastUpdated = Date.now();
+  },
   ADDED_ALL_COURSES(state) {
     state.generatedItemsMap = true;
+  },
+  SYNCED(state) {
+    state.lastSynced = Date.now();
   },
 };
 
@@ -74,16 +84,6 @@ const actions = {
       }
     });
   },
-  // generateFilesMap({ commit }) {
-  //   state.itemsMap.forEach(async (course) => {
-  //     if (course.sync) {
-  //       const copyCourse = Object.assign({}, course);
-  //       const updatedCourse = await canvasIntegration.getCourseItemsMap(state.authToken,
-  //         copyCourse);
-  //       commit('SET_COURSE_MAP', updatedCourse);
-  //     }
-  //   });
-  // },
   downloadCourse({ commit }, payload) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -96,8 +96,17 @@ const actions = {
       }
     });
   },
-  saveStateToDisk({ commit }) {
+  downloadedFile({ commit }, payload) {
+    commit('DOWNLOADED_FILE', payload);
+  },
+  beginInitialSync({ commit }, payload) {
+    commit('SET_ROOT_FOLDER', payload.rootFolder);
+    commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
+    router.push('./download');
+  },
+  completedInitialSync({ commit }) {
     return new Promise(async (resolve, reject) => {
+      commit('SYNCED');
       const savedSuccessfully = dataStorage.saveCurrentState(state);
       if (savedSuccessfully) {
         commit('SET_DISK_MATCHES_STATE');
@@ -106,11 +115,6 @@ const actions = {
         reject('Error saving currest state');
       }
     });
-  },
-  beginInitialSync({ commit }, payload) {
-    commit('SET_ROOT_FOLDER', payload.rootFolder);
-    commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
-    router.push('./download');
   },
   goUniversityLogin({ commit }, payload) {
     commit('SET_ROOT_URL', payload.rootURL);
