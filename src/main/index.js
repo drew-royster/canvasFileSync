@@ -1,6 +1,8 @@
 // const { app, BrowserWindow, Menu, dialog, Tray } = require("electron");
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, ipcRenderer } from 'electron' // eslint-disable-line
+import canvasIntegration from '../utils/canvasIntegration';
 const path = require('path');
+const _ = require('lodash');
 const applicationMenu = require('./application-menus');
 const dataStorageFile = require('../utils/dataStorage');
 const moment = require('moment');
@@ -50,6 +52,9 @@ const getUpdatedConnectedMenu = (lastSynced) => {
     {
       label: 'Sync Now',
       enabled: true,
+      click() {
+        sync(lastSynced);
+      },
     },
     {
       label: 'Sign Out',
@@ -145,6 +150,25 @@ app.on('activate', () => {
 const updateMenu = (template) => {
   const menu = Menu.buildFromTemplate(template);
   tray.setContextMenu(menu);
+};
+
+const sync = async (lastSynced) => {
+  const courses = await dataStorage.getCourses();
+  const authToken = await dataStorage.getAuthToken();
+  const rootURL = await dataStorage.getRootURL();
+  _.forEach(courses, async (course) => {
+    if (course.sync) {
+      const newFolder = await canvasIntegration.hasNewFolder(authToken,
+        rootURL,
+        course.id,
+        lastSynced,
+      );
+      if (newFolder) {
+        const folders = await canvasIntegration.findAllFolders(authToken, course);
+        console.log(folders);
+      }
+    }
+  });
 };
 
 /**

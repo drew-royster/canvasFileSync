@@ -129,8 +129,7 @@ const findAllFolders = async (authToken, course) => {
   try {
     const findFolders = (authToken, folder, currentPath, files = []) => {
       return getFolders(authToken, folder.folders_url, currentPath)
-        .then((items) => { // items = files || dirs
-          // items figures as list of tasks, settled promise means task is completed
+        .then((items) => {
           return Promise.map(items, (item) => {
               files.push(item);
               if (item.folders_count > 0) {
@@ -139,7 +138,6 @@ const findAllFolders = async (authToken, course) => {
           }) 
         })
         .then(() => {
-          // every task is completed, provide results
           return files
         })
     }
@@ -162,54 +160,6 @@ const findAllFiles = async (authToken, folders) => {
   }
 }
 
-const downloadRecurseFolders = async (folder, currentPath) => {
-  return new Promise(async (resolve, reject) => {
-    let allFolders = await Promise.resolve(folder.items).then(map(async (element, index) => {
-      try {
-        if (element.folder) {
-          if (element.sync) {
-            //create folder if it doesn't exist
-            if (!fs.existsSync(path.join(currentPath, element.name))) {
-              await fs.mkdirSync(path.join(currentPath, element.name));
-            }
-            await downloadRecurseFolders(element, path.join(currentPath, element.name));
-          }
-        } else {
-          if (element.sync) {
-            await request.get(element.url).then(async function(res) {
-              const buffer = Buffer.from(res, "utf8");
-              await fs.writeFileSync(path.join(currentPath, element.name), buffer);
-              element.lastUpdated = Date.now();
-            }).catch((err => {
-              console.error(err);
-              console.error(element.url);
-              folder.items.delete(index);
-            }));
-          }
-        }
-        return element;
-      } catch(err) {
-        console.error(err);
-        console.log(element);
-      }
-    }));
-    resolve(allFolders);
-  });
-};
-
-const downloadCourse = async (course) => {
-  try {
-    if (!fs.existsSync(course.path)) {
-      await fs.mkdirSync(course.path);
-    }
-    const updatedCourse = await downloadRecurseFolders(course, course.path);
-    course.items = updatedCourse;
-    return course;
-  } catch (err) {
-    console.error(err);
-  }
-};
-
 const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
   try {
     const options = {
@@ -227,7 +177,7 @@ const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
   }
 };
 
-const getCourseItemsMap = async (authToken, course) => {
+const getCourseFilesAndFolders = async (authToken, course) => {
   const folders = await findAllFolders(authToken, course);
   let files = await findAllFiles(authToken, folders);
   const filesResponse = await getFiles(authToken, course.files_url, course.name);
@@ -237,5 +187,26 @@ const getCourseItemsMap = async (authToken, course) => {
   return course;
 };
 
-export default { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
-// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseItemsMap };
+const hasNewFolder = async (authToken, rootURL, courseID, lastSynced) => {
+  try {
+    const options = {
+      method: 'GET',
+      uri: `http://${rootURL}/api/v1/courses/${courseID}/folders?sort=updated_at&order=desc`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      encoding: null,
+    };
+    const foldersLastUpdated = await request(options);
+    if (new Date(foldersLastUpdated[0].updated_at) > new Date(lastSynced)) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+};
+
+export default { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, hasNewFolder, findAllFolders, findAllFiles };
+// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, hasNewFolder };

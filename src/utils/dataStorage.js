@@ -11,20 +11,22 @@ const saveCurrentState = async (state) => {
   }
 };
 
-const getSavedState = async () => {
-  try {
-    const state = {};
-    state.authToken = store.get('authToken');
-    state.rootURL = store.get('rootURL');
-    state.rootFolder = store.get('rootFolder');
-    state.syncFrequency = store.get('syncFrequency');
-    state.itemsMap = store.get('itemsMap');
-    return state;
-  } catch (err) {
-    console.error(err);
-    return { error: 'Problem getting saved state from disk' };
-  }
-};
+// Eventually we need renderer to be able to pull state from store
+// const getSavedState = async (emptyState) => {
+//   try {
+//     const state = {};
+//     Object.entries(emptyState).forEach(([key, value]) => state = store.get(value));
+//     state.authToken = store.get('authToken');
+//     state.rootURL = store.get('rootURL');
+//     state.rootFolder = store.get('rootFolder');
+//     state.syncFrequency = store.get('syncFrequency');
+//     state.itemsMap = store.get('itemsMap');
+//     return state;
+//   } catch (err) {
+//     console.error(err);
+//     return { error: 'Problem getting saved state from disk' };
+//   }
+// };
 
 const isConnected = async () => {
   console.log(store.get('rootFolder'));
@@ -47,4 +49,23 @@ const getLastSynced = async () => {
   return store.get('lastSynced');
 };
 
-export default { isConnected, saveCurrentState, getSavedState, getLastSynced };
+const getCourses = async () => {
+  return store.get('courses');
+};
+
+const getAuthToken = async () => {
+  return store.get('authToken');
+};
+
+const getRootURL = async () => {
+  return store.get('rootURL');
+};
+
+export default {
+  isConnected,
+  saveCurrentState,
+  getCourses,
+  getLastSynced,
+  getAuthToken,
+  getRootURL,
+};

@@ -11,9 +11,8 @@ const state = {
   rootURL: null,
   rootFolder: null,
   syncFrequency: null,
-  itemsMap: [],
-  matchesPersistentStorage: false,
-  generatedItemsMap: false,
+  courses: [],
+  gotAllCourses: false,
   lastSynced: null,
 };
 
@@ -21,12 +20,6 @@ const mutations = {
   SET_CONNECTION_PARAMETERS(state, payload) {
     state.authToken = payload.authToken;
     state.rootURL = payload.rootURL;
-  },
-  SET_DISK_MATCHES_STATE(state) {
-    state.matchesPersistentStorage = true;
-  },
-  SET_DISK_DOES_NOT_MATCH_STATE(state) {
-    state.matchesPersistentStorage = false;
   },
   SET_ROOT_FOLDER(state, payload) {
     state.rootFolder = payload;
@@ -41,20 +34,20 @@ const mutations = {
     state.syncFrequency = payload;
   },
   ADD_COURSE(state, payload) {
-    state.itemsMap.push(payload);
+    state.courses.push(payload);
   },
   SET_COURSE_MAP(state, payload) {
-    const index = _.findIndex(state.itemsMap, { id: payload.id });
-    state.itemsMap[index] = payload;
+    const index = _.findIndex(state.courses, { id: payload.id });
+    state.courses[index] = payload;
   },
   DOWNLOADED_FILE(state, payload) {
-    const courseIndex = _.findIndex(state.itemsMap, { id: payload.courseID });
-    const fileIndex = _.findIndex(state.itemsMap[courseIndex].files,
+    const courseIndex = _.findIndex(state.courses, { id: payload.courseID });
+    const fileIndex = _.findIndex(state.courses[courseIndex].files,
       { filePath: payload.filePath });
-    state.itemsMap[courseIndex].files[fileIndex].lastUpdated = Date.now();
+    state.courses[courseIndex].files[fileIndex].lastUpdated = Date.now();
   },
   ADDED_ALL_COURSES(state) {
-    state.generatedItemsMap = true;
+    state.gotAllCourses = true;
   },
   SYNCED(state) {
     state.lastSynced = Date.now();
@@ -69,30 +62,18 @@ const actions = {
       if (response.success) {
         response.response.forEach(async (courseItem) => {
           if (courseItem.sync) {
-            const course = await canvasIntegration.getCourseItemsMap(state.authToken, courseItem);
+            const course = await canvasIntegration.getCourseFilesAndFolders(
+              state.authToken, courseItem);
             commit('ADD_COURSE', course);
           } else {
             commit('ADD_COURSE', courseItem);
           }
           coursesAdded += 1;
           if (coursesAdded === response.response.length) {
-            console.log('this executed');
             commit('ADDED_ALL_COURSES');
           }
         });
         router.push('/configure');
-      }
-    });
-  },
-  downloadCourse({ commit }, payload) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const newCourse = await canvasIntegration.downloadCourse(payload);
-        commit('SET_COURSE_MAP', newCourse);
-        resolve(`Downloaded ${payload.name}`);
-      } catch (err) {
-        console.error(err);
-        reject();
       }
     });
   },
@@ -109,7 +90,6 @@ const actions = {
       commit('SYNCED');
       const savedSuccessfully = dataStorage.saveCurrentState(state);
       if (savedSuccessfully) {
-        commit('SET_DISK_MATCHES_STATE');
         resolve(savedSuccessfully);
       } else {
         reject('Error saving currest state');
@@ -123,14 +103,17 @@ const actions = {
 };
 
 const getters = {
+  authToken(state) {
+    return state.authToken;
+  },
   rootURL(state) {
     return state.rootURL;
   },
-  itemsMap(state) {
-    return state.itemsMap;
+  courses(state) {
+    return state.courses;
   },
-  generatedItemsMap(state) {
-    return state.generatedItemsMap;
+  gotAllCourses(state) {
+    return state.gotAllCourses;
   },
   rootFolder(state) {
     return state.rootFolder;

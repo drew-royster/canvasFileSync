@@ -51,28 +51,26 @@ export default {
       filesFailedToDownload: [],
       numFoldersCreated: 0,
       numFilesDownloaded: 0,
+      numFilesToBeDownloaded: 0,
       foldersCreated: false,
       done: false,
     };
   },
   computed: {
     courses() {
-      return this.$store.getters.itemsMap;
+      return this.$store.getters.courses;
     },
     rootFolder() {
       return this.$store.getters.rootFolder;
     },
-    generatedItemsMap() {
-      return this.$store.getters.generatedItemsMap;
+    gotAllCourses() {
+      return this.$store.getters.gotAllCourses;
     },
     authToken() {
       return this.$store.getters.authToken;
     },
     numFoldersToBeCreated() {
       return this.foldersToBeCreated.length;
-    },
-    numFilesToBeDownloaded() {
-      return this.filesToBeDownloaded.length;
     },
   },
   mounted() {
@@ -114,6 +112,7 @@ export default {
       this.foldersToBeCreated = this.foldersToBeCreated.concat(foldersArray);
       this.filesToBeDownloaded = this.filesToBeDownloaded.concat(filesArray);
     });
+    this.numFilesToBeDownloaded = this.filesToBeDownloaded.length;
     this.foldersToBeCreated = _.sortBy(this.foldersToBeCreated, (folder) => {
       return (folder.match(/\//g) || []).length;
     });

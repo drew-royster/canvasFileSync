@@ -1111,7 +1111,7 @@ canvasIntegration.getActiveCanvasCourses(
   '1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', 'uvu.instructure.com').then((response) => {
     response.response.forEach(async (courseItem) => {
       if (courseItem.sync) {
-        courses.push(await canvasIntegration.getCourseItemsMap('1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', courseItem));
+        courses.push(await canvasIntegration.getCourseFilesAndFolders('1012~n4I3mDGFxlupPuJkI6iYnpO3J9KMzOxXo8LBiGZE2BZzZwundcZPP4OcF9ElE83z', courseItem));
       } else {
         courses.push(courseItem);
       }

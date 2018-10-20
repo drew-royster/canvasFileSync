@@ -2,7 +2,7 @@
   <v-content>
     <v-layout mt-5 justify-center align-center row>
       <v-flex xs12 sm10>
-        <v-layout v-if="!generatedItemsMap" justify-center align-center>
+        <v-layout v-if="!gotAllCourses" justify-center align-center>
           <v-progress-circular
             :size="400"
             :width="30"
@@ -26,7 +26,7 @@
                     </v-toolbar>
                     <v-list>
                       <v-list-tile
-                      v-for="course in itemsMap"
+                      v-for="course in courses"
                       :key="course.id"
                       >
                       <v-list-tile-action>
@@ -136,11 +136,11 @@
       };
     },
     computed: {
-      itemsMap() {
-        return this.$store.getters.itemsMap;
+      courses() {
+        return this.$store.getters.courses;
       },
-      generatedItemsMap() {
-        return this.$store.getters.generatedItemsMap;
+      gotAllCourses() {
+        return this.$store.getters.gotAllCourses;
       },
     },
     watch: {
