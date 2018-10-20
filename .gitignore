@@ -1,5 +1,4 @@
 node_modules
-build
 installer
 README.pdf
 README.html
@@ -9,7 +8,6 @@ canvasFileSync.zip
 .DS_Store
 dist/electron/*
 dist/web/*
-build/*
 !build/icons
 coverage
 node_modules/
