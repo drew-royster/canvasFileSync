@@ -153,30 +153,47 @@ const updateMenu = (template) => {
 };
 
 const sync = async (lastSynced) => {
-  const courses = await dataStorage.getCourses();
+  const courses = await dataStorage.getSyncableCourses();
   const authToken = await dataStorage.getAuthToken();
   const rootURL = await dataStorage.getRootURL();
   const rootFolder = await dataStorage.getRootFolder();
-  _.forEach(courses, async (course) => {
-    if (course.sync) {
-      const newFolder = await canvasIntegration.hasNewFolder(authToken,
-        rootURL,
-        course.id,
-        lastSynced,
-      );
-      if (newFolder) {
-        const folders = await canvasIntegration.findAllFolders(authToken, course);
-        _.forEach(folders, async (folder) => {
-          try {
-            await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
-            await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
-          } catch (err) {
-            console.error('Folder already exists');
-          }
-        });
+  console.log('this should run before find create new folders');
+  const coursesWithNewFolders = await filterCoursesWithNewFolders(lastSynced,
+    courses, authToken, rootURL, rootFolder);
+  console.log(coursesWithNewFolders);
+  console.log('this should run after find create new folders');
+  const newFolders = await getNewFolders(authToken, coursesWithNewFolders);
+  const foldersToBeCreated = _.flatten(newFolders);
+  await createNewFolders(rootFolder, foldersToBeCreated);
+  console.log('last');
+};
+
+const filterCoursesWithNewFolders = async (lastSynced, courses, authToken, rootURL, rootFolder) => {
+  console.log(rootFolder);
+  return Promise.all(_.filter(courses, async (course) => {
+    return canvasIntegration.hasNewFolder(authToken,
+      rootURL,
+      course.id,
+      lastSynced,
+    );
+  }));
+};
+
+const getNewFolders = async (authToken, courses) => {
+  return Promise.all(_.map(courses, course => canvasIntegration.findAllFolders(authToken, course)));
+};
+
+const createNewFolders = async (rootFolder, folders) => {
+  return Promise.all(
+    _.forEach(folders, async (folder) => {
+      try {
+        await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
+        return await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
+      } catch (err) {
+        console.error('Folder already exists');
+        return 'Folder already exists';
       }
-    }
-  });
+    }));
 };
 
 /**

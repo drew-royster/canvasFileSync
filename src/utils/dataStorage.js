@@ -1,5 +1,6 @@
 const Store = require('electron-store');
 const store = new Store();
+const _ = require('lodash');
 
 const saveCurrentState = async (state) => {
   try {
@@ -53,6 +54,10 @@ const getCourses = async () => {
   return store.get('courses');
 };
 
+const getSyncableCourses = async () => {
+  return Promise.all(_.filter(store.get('courses'), course => course.sync));
+};
+
 const getAuthToken = async () => {
   return store.get('authToken');
 };
@@ -69,6 +74,7 @@ export default {
   isConnected,
   saveCurrentState,
   getCourses,
+  getSyncableCourses,
   getLastSynced,
   getAuthToken,
   getRootURL,
