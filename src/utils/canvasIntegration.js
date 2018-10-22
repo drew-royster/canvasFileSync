@@ -99,11 +99,11 @@ const getFolders = async (authToken, folderURL, currentPath) => {
   }));
 };
 
-//Right now this will only get 100 files may want to add recursion into this as well
+//Right now this will only get 200 files may want to add recursion into this as well
 const getFiles = async (authToken, filesURL, currentPath) => {
   const options = {
     method: 'GET',
-    uri: `${filesURL}/?per_page=100`,
+    uri: `${filesURL}/?per_page=200`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -123,6 +123,41 @@ const getFiles = async (authToken, filesURL, currentPath) => {
       filePath,
     }
   }));
+};
+
+//Right now this will only get 200 files may want to add recursion into this as well
+const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced) => {
+  try {
+    const options = {
+      method: 'GET',
+      uri: `${filesURL}/?per_page=200`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      encoding: null,
+    };
+    const filesResponse = await request(options);
+    const newFiles = _.filter(filesResponse, (file) => {
+      if (new Date(file.updated_at) < new Date(lastSynced)) {
+        return file;
+      }
+    });
+    return Promise.resolve(newFiles).then(map(async (element) => {
+      const filePath = path.join(currentPath, element.display_name);
+        return {
+          name: element.display_name,
+          url: element.url,
+          folder: false,
+          lastUpdated: null,
+          size: element.size,
+          sync: true,
+          id: element.id,
+          filePath,
+        }
+    }));
+  } catch (err) {
+    console.log('Problem getting new or updated files');
+    return [];
+  }
 };
 
 const findAllFolders = async (authToken, course) => {
@@ -157,6 +192,22 @@ const findAllFiles = async (authToken, folders) => {
     return files;
   } catch (error) {
     console.error(error);
+  }
+}
+
+const getAllNewOrUpdatedFiles = async (authToken, course, lastSynced) => {
+  try {
+    let files = [];
+    const rootFolderFiles = await getNewOrUpdatedFiles(authToken, course.files_url, course.name, lastSynced);
+    files = files.concat(rootFolderFiles);
+    await Promise.map(course.folders, async (folder) => {
+      const folderFiles = await getNewOrUpdatedFiles(authToken, folder.files_url, folder.folderPath, lastSynced);
+      files = files.concat(folderFiles);
+    })
+    return files;
+  } catch (error) {
+    console.log('problem getting new files');
+    // console.error(error);
   }
 }
 
@@ -216,7 +267,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
           id: folderRaw.id,
           folderPath,
         }
-        if (new Date(folder.lastUpdated) < new Date(lastSynced)) {
+        if (new Date(folder.lastUpdated) > new Date(lastSynced)) {
           newFolders.push(folder);
         }
       }
@@ -241,7 +292,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
     // console.log(filesLastUpdated[0].updated_at);
     // console.log(new Date(lastSynced));
     // theoretically this works, but it is not yet tested all the way through
-    if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
+    if (new Date(filesLastUpdated[0].updated_at) < new Date(lastSynced)) {
       console.log('new file');
       return true;
     } else {
@@ -249,7 +300,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
       return false;
     }
   } catch (err) {
-    console.error(err);
+    console.log(`Error checking if ${courseID} has new files`);
     return false;
   }
 };
@@ -262,6 +313,7 @@ export default {
   getNewFolders,
   hasNewFile,
   findAllFolders,
-  findAllFiles
+  findAllFiles,
+  getAllNewOrUpdatedFiles,
 };
 // module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, getNewFolders };
