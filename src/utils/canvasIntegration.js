@@ -187,20 +187,65 @@ const getCourseFilesAndFolders = async (authToken, course) => {
   return course;
 };
 
-const hasNewFolder = async (authToken, rootURL, courseID, lastSynced) => {
+const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
+  const newFolders = [];
   try {
     const options = {
       method: 'GET',
-      uri: `http://${rootURL}/api/v1/courses/${courseID}/folders?sort=updated_at&order=desc`,
+      uri: `http://${rootURL}/api/v1/courses/${course.id}/folders?sort=updated_at&order=desc&per_page=200`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
     };
     const foldersLastUpdated = await request(options);
     // theoretically this works, but it is not yet tested all the way through
-    if (new Date(foldersLastUpdated[0].updated_at) > new Date(lastSynced)) {
+
+    _.forEach(foldersLastUpdated, (folderRaw) => {
+      if (folderRaw.full_name !== 'course files') {
+        const parseFullName = folderRaw.full_name.replace('course files','');
+        const folderPath = path.join(course.name, parseFullName);
+        const folder = {
+          name: folderRaw.name,
+          lastUpdated: folderRaw.updated_at,
+          folder: true,
+          folders_count: folderRaw.folders_count,
+          folders_url: folderRaw.folders_url,
+          files_count: folderRaw.files_count,
+          files_url: folderRaw.files_url,
+          sync: true,
+          id: folderRaw.id,
+          folderPath,
+        }
+        if (new Date(folder.lastUpdated) < new Date(lastSynced)) {
+          newFolders.push(folder);
+        }
+      }
+    });
+    return newFolders;
+  } catch (err) {
+    console.error(err);
+    return newFolders;
+  }
+};
+
+const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
+  try {
+    const options = {
+      method: 'GET',
+      uri: `https://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      encoding: null,
+    };
+    const filesLastUpdated = await request(options);
+    // console.log(filesLastUpdated[0].updated_at);
+    // console.log(new Date(lastSynced));
+    // theoretically this works, but it is not yet tested all the way through
+    if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
+      console.log('new file');
       return true;
     } else {
+      console.log('no new files');
       return false;
     }
   } catch (err) {
@@ -209,5 +254,14 @@ const hasNewFolder = async (authToken, rootURL, courseID, lastSynced) => {
   }
 };
 
-export default { getActiveCanvasCourses, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, hasNewFolder, findAllFolders, findAllFiles };
-// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, hasNewFolder };
+export default {
+  getActiveCanvasCourses,
+  getCourseFilesANDFoldersURLS,
+  hasAccessToFilesAPI,
+  getCourseFilesAndFolders,
+  getNewFolders,
+  hasNewFile,
+  findAllFolders,
+  findAllFiles
+};
+// module.exports = { getActiveCanvasCourses, downloadCourse, getCourseFilesANDFoldersURLS, hasAccessToFilesAPI, getCourseFilesAndFolders, getNewFolders };

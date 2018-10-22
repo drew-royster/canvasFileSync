@@ -157,30 +157,57 @@ const sync = async (lastSynced) => {
   const authToken = await dataStorage.getAuthToken();
   const rootURL = await dataStorage.getRootURL();
   const rootFolder = await dataStorage.getRootFolder();
-  console.log('this should run before find create new folders');
-  const coursesWithNewFolders = await filterCoursesWithNewFolders(lastSynced,
-    courses, authToken, rootURL, rootFolder);
-  console.log(coursesWithNewFolders);
-  console.log('this should run after find create new folders');
-  const newFolders = await getNewFolders(authToken, coursesWithNewFolders);
+  const newFolders = await getNewFolders(authToken, rootURL, courses, lastSynced);
+  console.log(newFolders);
   const foldersToBeCreated = _.flatten(newFolders);
-  await createNewFolders(rootFolder, foldersToBeCreated);
+  console.log(foldersToBeCreated);
   console.log('last');
+  await createNewFolders(rootFolder, foldersToBeCreated);
+  const coursesWithNewFiles = await filterCoursesWithNewFiles(lastSynced,
+    courses, authToken, rootURL);
+  console.log(coursesWithNewFiles);
 };
 
-const filterCoursesWithNewFolders = async (lastSynced, courses, authToken, rootURL, rootFolder) => {
-  console.log(rootFolder);
-  return Promise.all(_.filter(courses, async (course) => {
-    return canvasIntegration.hasNewFolder(authToken,
+// const filterCoursesWithNewFolders = async (lastSynced, courses, authToken, rootURL) => {
+//   const coursesWithNewFolders = [];
+//   /* eslint-disable no-await-in-loop */
+//   for (let i = 0; i < courses.length; i += 1) {
+//     const courseHasNewFolder = await canvasIntegration.hasNewFolder(authToken,
+//       rootURL,
+//       courses[i].id,
+//       lastSynced,
+//     );
+//     if (courseHasNewFolder) {
+//       coursesWithNewFolders.push(courses[i]);
+//     }
+//   }
+//   return coursesWithNewFolders;
+// };
+
+const filterCoursesWithNewFiles = async (lastSynced, courses, authToken, rootURL) => {
+  const coursesWithNewFiles = [];
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < courses.length; i += 1) {
+    const courseHasNewFile = await canvasIntegration.hasNewFile(authToken,
       rootURL,
-      course.id,
-      lastSynced,
-    );
-  }));
+      courses[i].id,
+      lastSynced);
+    if (courseHasNewFile) {
+      coursesWithNewFiles.push(courses[i]);
+    }
+  }
+  return coursesWithNewFiles;
 };
 
-const getNewFolders = async (authToken, courses) => {
-  return Promise.all(_.map(courses, course => canvasIntegration.findAllFolders(authToken, course)));
+const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
+  const newFolders = [];
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < courses.length; i += 1) {
+    const courseNewFolders = await canvasIntegration.getNewFolders(authToken,
+      rootURL, courses[i], lastSynced);
+    newFolders.push(courseNewFolders);
+  }
+  return newFolders;
 };
 
 const createNewFolders = async (rootFolder, folders) => {
