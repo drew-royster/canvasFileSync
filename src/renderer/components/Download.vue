@@ -49,6 +49,7 @@ export default {
       foldersToBeCreated: [],
       filesToBeDownloaded: [],
       filesFailedToDownload: [],
+      filesSuccessfullyRequested: [],
       numFoldersCreated: 0,
       numFilesDownloaded: 0,
       numFilesToBeDownloaded: 0,
@@ -90,6 +91,9 @@ export default {
     });
     this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
       this.filesFailedToDownload.push(file);
+    });
+    this.$electron.ipcRenderer.on('request-done', (e, file) => {
+      this.filesSuccessfullyRequested.push(file);
     });
     const onlySyncable = _.filter(this.courses, (course) => { return course.sync; });
     _.forEach(onlySyncable, (course) => {

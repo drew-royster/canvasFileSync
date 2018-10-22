@@ -9,7 +9,7 @@ const dataStorageFile = require('../utils/dataStorage');
 const moment = require('moment');
 const dataStorage = dataStorageFile.default;
 const fs = require('fs');
-const request = require('request-promise');
+const request = require('request');
 
 
 /**
@@ -120,10 +120,14 @@ ipcMain.on('choose-folder', (event) => {
 ipcMain.on('download-file', async (e, args) => {
   const { options, file } = args;
   try {
-    const response = await request.get(options);
-    const buffer = Buffer.from(response, 'utf8');
-    await fs.writeFileSync(file.fullPath, buffer);
-    return e.sender.send('file-downloaded', file);
+    let downloadStream = request.get(options)
+      .on('error', function(err) {
+        return e.sender.send('file-download-failed', file);
+      })
+      .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
+    downloadStream.on('finish', () => {
+      return e.sender.send('file-downloaded', file);
+    })
   } catch (err) {
     console.error(err);
     return e.sender.send('file-download-failed', file);
@@ -166,7 +170,7 @@ const sync = async (lastSynced) => {
   await createNewFolders(rootFolder, foldersToBeCreated);
   const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
     rootURL, coursesWithNewFolders, lastSynced);
-  // console.log(coursesWithNewFilesAndFolders[0].files);
+  console.log(newOrUpdatedFiles);
 };
 
 // const filterCoursesWithNewFolders = async (lastSynced, courses, authToken, rootURL) => {
@@ -188,7 +192,6 @@ const sync = async (lastSynced) => {
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
   const coursesWithNewFilesAndFolders = JSON.parse(JSON.stringify(courses));
   const newOrUpdatedFiles = [];
-  console.log(coursesWithNewFilesAndFolders.length);
   try {
     /* eslint-disable no-await-in-loop */
     for (let i = 0; i < coursesWithNewFilesAndFolders.length; i += 1) {
@@ -197,15 +200,15 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
         coursesWithNewFilesAndFolders[i].id,
         lastSynced);
       if (courseHasNewFile) {
-        console.log('has new file(s)');
+        // console.log('has new file(s)');
         const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken, coursesWithNewFilesAndFolders[i], lastSynced);
-        console.log(`num new or updated course files: ${courseFiles.length}`);
+        // console.log(`num new or updated course files: ${courseFiles.length}`);
         for (let j = 0; j < courseFiles.length; j += 1) {
           const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
             { filePath: courseFiles[j]. filePath });
           newOrUpdatedFiles.push(courseFiles[j]);
           if (fileIndex >= 0) {
-            console.log('updating file');
+            // console.log('updating file');
             coursesWithNewFilesAndFolders[i].files[fileIndex] = courseFiles[j];
           } else {
             coursesWithNewFilesAndFolders[i].files.push(courseFiles[j]);

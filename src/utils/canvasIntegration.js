@@ -64,9 +64,11 @@ const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
     await request(options);
     return true;
   } catch (err) {
-    if (err === 'StatusCodeError: 401 - {"status":"unauthorized","errors":[{"message":"user not authorized to perform that action"}]}') {
+    if (err.message === 'StatusCodeError: 401 - {"status":"unauthorized","errors":[{"message":"user not authorized to perform that action"}]}') {
       return false;
-    } log.error(err);
+    } else {
+      console.error(err);
+    }
   }
   return false;
 };
@@ -137,7 +139,7 @@ const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced
     };
     const filesResponse = await request(options);
     const newFiles = _.filter(filesResponse, (file) => {
-      if (new Date(file.updated_at) < new Date(lastSynced)) {
+      if (new Date(file.updated_at) > new Date(lastSynced)) {
         return file;
       }
     });
@@ -293,10 +295,10 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
     // console.log(new Date(lastSynced));
     // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) < new Date(lastSynced)) {
-      console.log('new file');
+      // console.log('new file');
       return true;
     } else {
-      console.log('no new files');
+      // console.log('no new files');
       return false;
     }
   } catch (err) {

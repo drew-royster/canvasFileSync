@@ -63,9 +63,11 @@
       
             <v-stepper-step :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
             <v-stepper-content step="2">
+              <v-layout row>
                 <v-flex mb-2 large>
                   <v-btn large @click="chooseFolder">{{ folder }}</v-btn>
                 </v-flex>
+              </v-layout>
 
               <v-btn
                 v-if="folderChosen"
@@ -105,16 +107,12 @@
                   <h1>minutes</h1>
                 </v-flex>
               </v-layout>
-              <v-layout align-baseline row>
-                <v-flex>
-                  <v-btn
-                    color="primary"
-                    @click="beginSync"
-                  >
-                    Continue
-                  </v-btn>
-                </v-flex>
-              </v-layout>
+              <v-btn
+                color="primary"
+                @click="beginSync"
+              >
+                Continue
+              </v-btn>
             </v-stepper-content>
           </v-stepper-items>
         </v-stepper>
