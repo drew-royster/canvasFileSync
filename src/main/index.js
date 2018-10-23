@@ -9,7 +9,7 @@ const dataStorageFile = require('../utils/dataStorage');
 const moment = require('moment');
 const dataStorage = dataStorageFile.default;
 const fs = require('fs');
-const request = require('request');
+const request = require('request-promise');
 
 
 /**
@@ -118,20 +118,60 @@ ipcMain.on('choose-folder', (event) => {
 });
 
 ipcMain.on('download-file', async (e, args) => {
+  downloadFile(e, args, 'file-downloaded');
+});
+
+ipcMain.on('download-first-file', async (e, args) => {
+  downloadFile(e, args, 'first-file-downloaded');
+});
+
+const downloadFile = async (e, args, ipcReceiver) => {
   const { options, file } = args;
   try {
-    let downloadStream = request.get(options)
-      .on('error', function(err) {
-        return e.sender.send('file-download-failed', file);
+    console.log(file.projectedDownloadTime);
+    const timeout = new Promise(function(resolve) {
+      setTimeout(resolve, file.projectedDownloadTime, 'Timed out');
+    });
+    const downloadPromise = new Promise((resolve, reject) => {
+      let downloadStream = request.get(options)
+        .on('response', () => {
+          e.sender.send('request-done', file);
+        })
+        .on('error', (err) => {
+          console.error(err);
+          reject('failing on request');
+        })
+        .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
+      downloadStream
+        .on('error', () => {
+          console.error('failing on write stream');
+          reject('failing on write stream');
+        })
+        .on('finish', () => {
+          resolve('Download Finished');
+        })
+    });
+    Promise.race([timeout, downloadPromise])
+      .then((response) => {
+        if (response === 'Download Finished') {
+          return e.sender.send(ipcReceiver, file);
+        } else {
+          return e.sender.send('file-download-failed', file);
+        }
       })
-      .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
-    downloadStream.on('finish', () => {
-      return e.sender.send('file-downloaded', file);
-    })
+      .catch((reason) => {
+        console.error(reason);
+        return e.sender.send('file-download-failed', file);
+      });
   } catch (err) {
+    console.error('general exception');
     console.error(err);
     return e.sender.send('file-download-failed', file);
   }
+}
+
+ipcMain.on('completed-initial-sync', async () => {
+  updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
 });
 
 ipcMain.on('create-folder', (event, folder) => {
