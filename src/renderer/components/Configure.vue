@@ -88,24 +88,26 @@
             
             <v-stepper-step step="3">How often?</v-stepper-step>
             <v-stepper-content step="3">
-              <v-layout row>
-                <v-flex>
-                  <h1>Sync every</h1>
-                </v-flex>
-              </v-layout>
-              <v-layout align-baseline row>
-                <v-flex xs1>
-                  <v-text-field
-                    v-model="syncFrequency"
-                    class="mt-0 headline"
-                    type="number"
-                  ></v-text-field>
-                </v-flex>
-              </v-layout>
-              <v-layout align-baseline row>
-                <v-flex>
-                  <h1>minutes</h1>
-                </v-flex>
+              <v-layout column pl-2>
+                <v-layout row>
+                  <v-flex>
+                    <h1>Sync every</h1>
+                  </v-flex>
+                </v-layout>
+                <v-layout align-baseline row>
+                  <v-flex xs1>
+                    <v-text-field
+                      v-model="syncFrequency"
+                      class="mt-0 headline"
+                      type="number"
+                    ></v-text-field>
+                  </v-flex>
+                </v-layout>
+                <v-layout align-baseline row>
+                  <v-flex>
+                    <h1>minutes</h1>
+                  </v-flex>
+                </v-layout>
               </v-layout>
               <v-btn
                 color="primary"

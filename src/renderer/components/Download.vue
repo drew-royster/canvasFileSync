@@ -32,6 +32,8 @@
 <script>
 const _ = require('lodash');
 const path = require('path');
+const prettyMs = require('pretty-ms');
+const prettyBytes = require('pretty-bytes');
 
 export default {
   name: 'download',
@@ -109,11 +111,11 @@ export default {
       console.log(`Start Time: ${file.downloadStartTime}`);
       console.log(`End Time: ${file.downloadStartTime}`);
       const downloadTime = (file.downloadEndTime - file.downloadStartTime);
-      console.log(`Difference: ${downloadTime}`);
-      console.log(`File Size: ${file.size}`);
+      console.log(`Difference: ${prettyMs(downloadTime)}`);
+      console.log(`File Size: ${prettyBytes(file.size)}`);
       this.projectedDownloadSpeed = (file.size / downloadTime) -
         ((file.size / downloadTime) * 0.75);
-      console.log(`Estimated Download Speed Bytes/Second: ${this.projectedDownloadSpeed}`);
+      console.log(`Estimated Download Speed Bytes/Second: ${prettyBytes(this.projectedDownloadSpeed)}`);
       this.$store.dispatch('downloadedFile', file);
       this.bytesDownloaded += file.size;
       this.numFilesDownloaded += 1;
@@ -131,7 +133,7 @@ export default {
           name: file.name,
           courseID: course.id,
           size: file.size,
-          retries: 3,
+          retries: 1,
         };
       });
       const foldersArray = _.map(course.folders, (folder) => {
@@ -225,9 +227,9 @@ export default {
             json: true,
             encoding: null,
           };
-          // console.log(`File size: ${file.size}`);
-          // console.log(`MS expected to take: ${projectedDownloadTime}`);
-          // console.log(`Download Speed: ${this.projectedDownloadSpeed}`);
+          console.log(`File size: ${prettyBytes(file.size)}`);
+          console.log(`MS expected to take: ${prettyMs(projectedDownloadTime)}`);
+          console.log(`Download Speed: ${prettyBytes(this.projectedDownloadSpeed)}`);
           this.$electron.ipcRenderer.send('download-file', { options, file });
         } else {
           this.filesFailedToDownload.push(this.filesToBeDownloaded[currentIndex]);

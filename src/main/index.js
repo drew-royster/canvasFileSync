@@ -10,6 +10,8 @@ const moment = require('moment');
 const dataStorage = dataStorageFile.default;
 const fs = require('fs');
 const request = require('request-promise');
+const PrettyError = require('pretty-error');
+const pe = new PrettyError();
 
 
 /**
@@ -128,7 +130,7 @@ ipcMain.on('download-first-file', async (e, args) => {
 const downloadFile = async (e, args, ipcReceiver) => {
   const { options, file } = args;
   try {
-    console.log(file.projectedDownloadTime);
+    // console.log(file.projectedDownloadTime);
     const timeout = new Promise(function(resolve) {
       setTimeout(resolve, file.projectedDownloadTime, 'Timed out');
     });
@@ -138,7 +140,7 @@ const downloadFile = async (e, args, ipcReceiver) => {
           e.sender.send('request-done', file);
         })
         .on('error', (err) => {
-          console.error(err);
+          console.error(pe.render(err));
           reject('failing on request');
         })
         .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
@@ -159,13 +161,13 @@ const downloadFile = async (e, args, ipcReceiver) => {
           return e.sender.send('file-download-failed', file);
         }
       })
-      .catch((reason) => {
-        console.error(reason);
+      .catch((err) => {
+        console.error(pe.render(err));
         return e.sender.send('file-download-failed', file);
       });
   } catch (err) {
     console.error('general exception');
-    console.error(err);
+    console.error(pe.render(err));
     return e.sender.send('file-download-failed', file);
   }
 }
@@ -262,7 +264,7 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
   } catch (err) {
     console.error('Error getting new files');
     // console.log(courses);
-    // console.error(err);
+    console.error(pe.render(err));
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
   }
 };
@@ -291,7 +293,7 @@ const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
     return { coursesWithNewFolders, newFolders };
   } catch (err) {
     console.error('Error getting new folders');
-    console.error(err);
+    console.error(pe.render(err));
     return { coursesWithNewFolders, newFolders };
   }
 };
