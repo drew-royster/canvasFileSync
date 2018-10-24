@@ -136,12 +136,12 @@ const downloadFile = async (e, args, ipcReceiver) => {
     });
     const downloadPromise = new Promise((resolve, reject) => {
       let downloadStream = request.get(options)
-        .on('response', () => {
-          e.sender.send('request-done', file);
-        })
         .on('error', (err) => {
           console.error(pe.render(err));
           reject('failing on request');
+        })
+        .on('response', () => {
+          e.sender.send('request-done', file);
         })
         .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
       downloadStream

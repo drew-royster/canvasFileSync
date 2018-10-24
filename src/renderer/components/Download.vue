@@ -133,7 +133,7 @@ export default {
           name: file.name,
           courseID: course.id,
           size: file.size,
-          retries: 1,
+          retries: 3,
         };
       });
       const foldersArray = _.map(course.folders, (folder) => {
@@ -169,11 +169,6 @@ export default {
       }
       this.progress = currentProgress;
     }, 1 * 1000);
-    // setInterval(() => {
-    //   if (this.foldersCreated) {
-    //     this.retryFiles();
-    //   }
-    // }, 10 * 1000);
   },
   watch: {
     numFoldersCreated() {
@@ -195,30 +190,17 @@ export default {
         }
       }
     },
-    numFilesDownloaded() {
-      if (this.numFilesDownloaded === this.numFilesToBeDownloaded) {
-        this.$store.dispatch('completedInitialSync').then(() => {
-          this.done = true;
-          this.progressMessage = 'DONE';
-          this.$electron.ipcRenderer.send('completed-initial-sync');
-        });
-      }
-    },
   },
   methods: {
     downloadFiles() {
-      if (this.numFilesDownloaded !== this.numFilesToBeDownloaded) {
-        const currentIndex = this.numFilesDownloaded + this.numFilesFailed;
+      const currentIndex = this.numFilesDownloaded + this.numFilesFailed;
+      if (currentIndex !== this.numFilesToBeDownloaded) {
         if (this.filesToBeDownloaded[currentIndex].retries > 0) {
           const projectedDownloadTime = (this.filesToBeDownloaded[currentIndex].size /
             this.projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
-          this.filesToBeDownloaded[currentIndex].whenToExpect =
-            Date.now() + projectedDownloadTime;
           this.filesToBeDownloaded[currentIndex].projectedDownloadTime =
             projectedDownloadTime;
           this.filesToBeDownloaded[currentIndex].retries -= 1;
-          // console.log(`Time Now: ${Date.now()}`);
-          // console.log(`When I should download it by: ${Date.now() + projectedDownloadTime}`);
           const file = this.filesToBeDownloaded[currentIndex];
           const options = {
             method: 'GET',
@@ -229,45 +211,25 @@ export default {
           };
           console.log(`File size: ${prettyBytes(file.size)}`);
           console.log(`MS expected to take: ${prettyMs(projectedDownloadTime)}`);
-          console.log(`Download Speed: ${prettyBytes(this.projectedDownloadSpeed)}`);
+          console.log(`Download Speed: ${prettyBytes(this.projectedDownloadSpeed * 1000)}/s`);
           this.$electron.ipcRenderer.send('download-file', { options, file });
         } else {
           this.filesFailedToDownload.push(this.filesToBeDownloaded[currentIndex]);
           this.numFilesFailed += 1;
+          this.downloadFiles();
         }
-      }
-    },
-    retryFiles() {
-      for (let i = 0; i < this.filesToBeDownloaded.length; i += 1) {
-        if (Date.now() > this.filesToBeDownloaded[i].whenToExpect &&
-          this.filesToBeDownloaded[i].retries > 0) {
-          console.log(`Retrying: ${this.filesToBeDownloaded[i].name}`);
-          this.filesToBeDownloaded[i].retries -= 1;
-          const projectedDownloadTime = (this.filesToBeDownloaded[i].size /
-            this.projectedDownloadSpeed); // in ms
-          this.filesToBeDownloaded[i].whenToExpect = Date.now() + projectedDownloadTime;
-          console.log(`MS expected to take: ${projectedDownloadTime}`);
-          console.log(`Time Now: ${Date.now()}`);
-          console.log(`When I should download it by: ${Date.now() + projectedDownloadTime}`);
-          const file = this.filesToBeDownloaded[i];
-          const options = {
-            method: 'GET',
-            uri: file.url,
-            headers: { Authorization: `Bearer ${this.authToken}` },
-            json: true,
-            encoding: null,
-          };
-          this.$electron.ipcRenderer.send('download-file', { options, file });
-        }
+      } else {
+        this.$electron.ipcRenderer.send('completed-initial-sync');
+        const payload = {
+          successes: this.numFilesDownloaded,
+          failures: this.numFilesFailed,
+        };
+        this.$store.dispatch('completedInitialSync', payload).then(() => {
+          this.done = true;
+          this.progressMessage = 'DONE';
+        });
       }
     },
   },
 };
 </script>
-
-<style scoped>
- #main-content
-  {
-    margin-top: 2%;
-  }
-  </style>

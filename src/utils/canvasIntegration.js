@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const log = require('electron-log');
 const _ = require('lodash');
+const filenamify = require('filenamify');
 
 const getActiveCanvasCourses = async (
   authToken,
@@ -26,7 +27,7 @@ const getActiveCanvasCourses = async (
         const { files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, element.id);
         return { id: element.id,
           sync: true,
-          name: element.name.split('|')[0].trim(),
+          name: filenamify(element.name.split('|')[0].trim(), { replacement: '-'}),
           folder: true,
           files_url,
           folders_url,
@@ -35,14 +36,13 @@ const getActiveCanvasCourses = async (
         return { id: element.id,
           sync,
           path: '',
-          name: element.name.split('|')[0].trim(),
+          name: filenamify(element.name.split('|')[0].trim(), { replacement: '-'}),
           items: [],
         };
       }
     }))
     return { success: true, message: 'success', response: activeCourses };
   } catch (error) {
-    log.error(error);
     if (
       error.message === '401 - {"errors":[{"message":"Invalid access token."}]}'
     ) {
@@ -64,11 +64,7 @@ const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
     await request(options);
     return true;
   } catch (err) {
-    if (err.message === 'StatusCodeError: 401 - {"status":"unauthorized","errors":[{"message":"user not authorized to perform that action"}]}') {
       return false;
-    } else {
-      console.error(err);
-    }
   }
   return false;
 };

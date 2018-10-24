@@ -85,11 +85,12 @@ const actions = {
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
     router.push('./download');
   },
-  completedInitialSync({ commit }) {
+  completedInitialSync({ commit }, payload) {
     return new Promise(async (resolve, reject) => {
       commit('SYNCED');
       const savedSuccessfully = dataStorage.saveCurrentState(state);
       if (savedSuccessfully) {
+        router.push(`./report/${payload.successes}/${payload.failures}`);
         resolve(savedSuccessfully);
       } else {
         reject('Error saving currest state');

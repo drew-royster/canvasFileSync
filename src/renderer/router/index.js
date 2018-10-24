@@ -17,6 +17,12 @@ export default new Router({
       props: true,
     },
     {
+      path: '/report/:successes/:failures',
+      name: 'Report',
+      component: require('@/components/Report').default,
+      props: true,
+    },
+    {
       path: '*',
       redirect: '/',
     },
