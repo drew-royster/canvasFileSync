@@ -1,3 +1,4 @@
+/* eslint-disable */
 const Store = require('electron-store');
 const store = new Store();
 const _ = require('lodash');
@@ -12,22 +13,19 @@ const saveCurrentState = async (state) => {
   }
 };
 
-// Eventually we need renderer to be able to pull state from store
-// const getSavedState = async (emptyState) => {
-//   try {
-//     const state = {};
-//     Object.entries(emptyState).forEach(([key, value]) => state = store.get(value));
-//     state.authToken = store.get('authToken');
-//     state.rootURL = store.get('rootURL');
-//     state.rootFolder = store.get('rootFolder');
-//     state.syncFrequency = store.get('syncFrequency');
-//     state.itemsMap = store.get('itemsMap');
-//     return state;
-//   } catch (err) {
-//     console.error(err);
-//     return { error: 'Problem getting saved state from disk' };
-//   }
-// };
+const getSavedState = async () => {
+  try {
+    const state = {};
+    for (let [key, value] of store) {
+      state[key] = value;
+    }
+    console.log(state);
+    return state;
+  } catch (err) {
+    console.error(err);
+    return { error: 'Problem getting saved state from disk' };
+  }
+};
 
 const isConnected = async () => {
   console.log(store.get('rootFolder'));
@@ -73,6 +71,7 @@ const getRootFolder = async () => {
 export default {
   isConnected,
   saveCurrentState,
+  getSavedState,
   getCourses,
   getSyncableCourses,
   getLastSynced,

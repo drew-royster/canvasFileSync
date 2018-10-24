@@ -101,6 +101,15 @@ const actions = {
     commit('SET_ROOT_URL', payload.rootURL);
     router.push(`./login/${payload.rootURL}`);
   },
+  isConnected() {
+    return new Promise(async (resolve, reject) => {
+      if (await dataStorage.isConnected()) {
+        resolve();
+      } else {
+        reject();
+      }
+    });
+  },
 };
 
 const getters = {

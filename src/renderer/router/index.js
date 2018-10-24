@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import store from '@/store/index.js';
 
 Vue.use(Router);
 
@@ -7,6 +8,20 @@ export default new Router({
   routes: [
     {
       path: '/',
+      name: 'Preferences',
+      component: require('@/components/Preferences').default,
+      beforeEnter: (to, from, next) => {
+        store.dispatch('isConnected')
+          .then(() => {
+            next();
+          })
+          .catch(() => {
+            next('/home');
+          });
+      },
+    },
+    {
+      path: '/home',
       name: 'Home',
       component: require('@/components/Home').default,
     },

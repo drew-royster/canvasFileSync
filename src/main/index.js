@@ -60,11 +60,11 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       },
     },
     {
-      label: 'Sign Out',
+      label: 'Preferences',
       enabled: true,
-    },
-    {
-      label: 'Quit',
+      click() {
+        createWindow();
+      }
     },
   ];
 };
@@ -84,7 +84,7 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-}
+};
 
 app.on('ready', async () => {
   if (process.platform !== 'darwin') {
@@ -214,22 +214,6 @@ const sync = async (lastSynced) => {
     rootURL, coursesWithNewFolders, lastSynced);
   console.log(newOrUpdatedFiles);
 };
-
-// const filterCoursesWithNewFolders = async (lastSynced, courses, authToken, rootURL) => {
-//   const coursesWithNewFolders = [];
-//   /* eslint-disable no-await-in-loop */
-//   for (let i = 0; i < courses.length; i += 1) {
-//     const courseHasNewFolder = await canvasIntegration.hasNewFolder(authToken,
-//       rootURL,
-//       courses[i].id,
-//       lastSynced,
-//     );
-//     if (courseHasNewFolder) {
-//       coursesWithNewFolders.push(courses[i]);
-//     }
-//   }
-//   return coursesWithNewFolders;
-// };
 
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
   const coursesWithNewFilesAndFolders = JSON.parse(JSON.stringify(courses));
