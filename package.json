@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "author": "Drew Royster <drew.124@gmail.com>",
   "description": "Syncs canvas course files to your local machine",
-  "license": null,
   "main": "./dist/electron/main.js",
   "scripts": {
     "build:mac": "node .electron-vue/build.js && electron-builder -m",
@@ -64,6 +63,7 @@
     "bluebird": "^3.5.2",
     "electron-log": "^2.2.17",
     "electron-store": "^2.0.0",
+    "electron-updater": "^3.1.2",
     "filenamify": "^2.1.0",
     "lodash": "^4.17.11",
     "moment": "^2.22.2",
