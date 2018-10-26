@@ -16,6 +16,7 @@
               <!-- <v-layout ma-2 justify-start align-center row>
                 <h1 class="headline">Sync Folder</h1>             
                 <v-btn large @click="chooseFolder">{{ folder }}</v-btn>              
+                <v-btn large @click="chooseFolder">{{ folder }}</v-btn>              
               </v-layout> -->
               <v-layout ma-2 align-center>
                 <h1 class="headline">Sync Frequency</h1>
