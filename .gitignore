@@ -6,6 +6,16 @@ compressed
 canvasFileSync.zip
 .idea
 .DS_Store
+build/R*
+build/C*
+build/c*
+build/l*
+build/.*
+build/m*
+build/w*
+build/k*
+build/e*
+build/g*
 dist/electron/*
 dist/web/*
 !build/icons
