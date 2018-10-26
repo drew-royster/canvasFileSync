@@ -1,6 +1,6 @@
 {
   "name": "canvas-file-sync",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": "Drew Royster <drew.124@gmail.com>",
   "description": "Syncs canvas course files to your local machine",
   "license": null,
@@ -21,7 +21,8 @@
     "pack:renderer": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.renderer.config.js",
     "test": "npm run unit && npm run e2e",
     "unit": "karma start test/unit/karma.conf.js",
-    "postinstall": "npm run lint:fix"
+    "postinstall": "npm run lint:fix",
+    "release": "build"
   },
   "build": {
     "productName": "Canvas File Sync",
