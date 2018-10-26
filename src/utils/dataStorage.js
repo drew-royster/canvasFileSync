@@ -19,7 +19,6 @@ const getSavedState = async () => {
     for (let [key, value] of store) {
       state[key] = value;
     }
-    console.log(state);
     return state;
   } catch (err) {
     console.error(err);
@@ -28,7 +27,6 @@ const getSavedState = async () => {
 };
 
 const isConnected = async () => {
-  console.log(store.get('rootFolder'));
   try {
     if (
       store.get('rootFolder') !== undefined &&

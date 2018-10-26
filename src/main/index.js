@@ -120,7 +120,12 @@ ipcMain.on('choose-folder', (event) => {
 });
 
 ipcMain.on('download-file', async (e, args) => {
-  downloadFile(e, args, 'file-downloaded');
+  try {
+    downloadFile(e, args, 'file-downloaded');
+  } catch (err) {
+    console.error(pe.render(err));
+    return e.sender.send('file-download-failed', file);
+  }
 });
 
 ipcMain.on('download-first-file', async (e, args) => {

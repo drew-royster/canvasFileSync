@@ -54,12 +54,10 @@ export default {
       filesToBeDownloaded: [],
       filesDownloaded: [],
       filesFailedToDownload: [],
-      filesSuccessfullyRequested: [],
       numFoldersCreated: 0,
       numFilesDownloaded: 0,
       numFilesFailed: 0,
       numFilesToBeDownloaded: 0,
-      projectedDownloadSpeed: 0,
       foldersCreated: false,
       done: false,
     };
@@ -89,23 +87,6 @@ export default {
       }
     });
     this.$electron.ipcRenderer.on('file-downloaded', (e, file) => {
-      this.filesDownloaded.push(file);
-      this.$store.dispatch('downloadedFile', file);
-      this.bytesDownloaded += file.size;
-      this.numFilesDownloaded += 1;
-      this.downloadFiles();
-    });
-    this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
-      // this.numFilesFailed += 1;
-      const currentIndex = this.numFilesFailed + this.numFilesDownloaded;
-      this.filesToBeDownloaded[currentIndex] = file;
-      this.downloadFiles();
-    });
-    this.$electron.ipcRenderer.on('request-done', (e, file) => {
-      this.filesSuccessfullyRequested.push(file);
-    });
-    this.$electron.ipcRenderer.on('first-file-downloaded', (e, file) => {
-      this.filesDownloaded.push(file);
       file.downloadEndTime = Date.now();
       console.log(`File Name: ${file.name}`);
       console.log(`Start Time: ${file.downloadStartTime}`);
@@ -113,13 +94,21 @@ export default {
       const downloadTime = (file.downloadEndTime - file.downloadStartTime);
       console.log(`Difference: ${prettyMs(downloadTime)}`);
       console.log(`File Size: ${prettyBytes(file.size)}`);
-      this.projectedDownloadSpeed = (file.size / downloadTime) -
-        ((file.size / downloadTime) * 0.75);
-      console.log(`Estimated Download Speed Bytes/Second: ${prettyBytes(this.projectedDownloadSpeed)}`);
+      const projectedDownloadSpeed = (file.size / downloadTime) -
+        ((file.size / downloadTime) * 0.5);
+      console.log(`Estimated Download Speed Bytes/Second: ${prettyBytes(projectedDownloadSpeed * 1000)}`);
+      this.filesDownloaded.push(file);
       this.$store.dispatch('downloadedFile', file);
       this.bytesDownloaded += file.size;
       this.numFilesDownloaded += 1;
-      this.downloadFiles();
+      console.log(`sending ${projectedDownloadSpeed} to downloadFile`);
+      this.downloadFile(projectedDownloadSpeed);
+    });
+    this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
+      // this.numFilesFailed += 1;
+      const currentIndex = this.numFilesFailed + this.numFilesDownloaded;
+      this.filesToBeDownloaded[currentIndex] = file;
+      this.downloadFile(200); // low end estimate 200Bytes/MS
     });
     const onlySyncable = _.filter(this.courses, (course) => { return course.sync; });
     _.forEach(onlySyncable, (course) => {
@@ -176,30 +165,26 @@ export default {
         this.foldersCreated = true;
         this.progressMessage = 'Downloading';
         if (this.filesToBeDownloaded.length > 0) {
-          const file = this.filesToBeDownloaded[0];
-          const options = {
-            method: 'GET',
-            uri: file.url,
-            headers: { Authorization: `Bearer ${this.authToken}` },
-            json: true,
-            encoding: null,
-          };
-          file.projectedDownloadTime = 300 * 1000;
-          file.downloadStartTime = Date.now();
-          this.$electron.ipcRenderer.send('download-first-file', { options, file });
+          const downloadSpeed = 200; // low end estimate 200Bytes/MS
+          this.downloadFile(downloadSpeed);
         }
       }
     },
   },
   methods: {
-    downloadFiles() {
+    downloadFile(projectedDownloadSpeed) {
       const currentIndex = this.numFilesDownloaded + this.numFilesFailed;
       if (currentIndex !== this.numFilesToBeDownloaded) {
         if (this.filesToBeDownloaded[currentIndex].retries > 0) {
-          const projectedDownloadTime = (this.filesToBeDownloaded[currentIndex].size /
-            this.projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
+          // this is the formula to estimate how long it will take to download
           this.filesToBeDownloaded[currentIndex].projectedDownloadTime =
-            projectedDownloadTime;
+            (this.filesToBeDownloaded[currentIndex].size /
+            projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
+
+          // setting now as the start time of download
+          this.filesToBeDownloaded[currentIndex].downloadStartTime = Date.now();
+
+          // decrementing retry count
           this.filesToBeDownloaded[currentIndex].retries -= 1;
           const file = this.filesToBeDownloaded[currentIndex];
           const options = {
@@ -210,13 +195,14 @@ export default {
             encoding: null,
           };
           console.log(`File size: ${prettyBytes(file.size)}`);
-          console.log(`MS expected to take: ${prettyMs(projectedDownloadTime)}`);
-          console.log(`Download Speed: ${prettyBytes(this.projectedDownloadSpeed * 1000)}/s`);
+          console.log(`MS expected to take: ${prettyMs(file.projectedDownloadTime)}`);
+          console.log(projectedDownloadSpeed);
+          console.log(`Download Speed: ${prettyBytes(projectedDownloadSpeed * 1000)}/s`);
           this.$electron.ipcRenderer.send('download-file', { options, file });
         } else {
           this.filesFailedToDownload.push(this.filesToBeDownloaded[currentIndex]);
           this.numFilesFailed += 1;
-          this.downloadFiles();
+          this.downloadFile(200); // low end estimate 200Bytes/MS
         }
       } else {
         this.$electron.ipcRenderer.send('completed-initial-sync');

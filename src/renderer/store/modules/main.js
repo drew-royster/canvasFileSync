@@ -1,3 +1,4 @@
+/* eslint-disable */
 // import { dialog } from 'electron'; // eslint-disable-line
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
@@ -17,6 +18,9 @@ const state = {
 };
 
 const mutations = {
+  LOAD_PROPERTY(state, payload) {
+    state[payload.key] = payload.value;
+  },
   SET_CONNECTION_PARAMETERS(state, payload) {
     state.authToken = payload.authToken;
     state.rootURL = payload.rootURL;
@@ -85,6 +89,17 @@ const actions = {
     commit('SET_SYNC_FREQUENCY', payload.syncFrequency);
     router.push('./download');
   },
+  loadSavedState({ commit }) {
+    return new Promise(async (resolve) => {
+      const savedState = await dataStorage.getSavedState();
+      console.log(savedState);
+      console.log(typeof savedState);
+      Object.entries(savedState).forEach(([key, value]) => {
+        commit('LOAD_PROPERTY', { key, value })
+      });
+      resolve();
+    });
+  },
   completedInitialSync({ commit }, payload) {
     return new Promise(async (resolve, reject) => {
       commit('SYNCED');
@@ -127,6 +142,9 @@ const getters = {
   },
   rootFolder(state) {
     return state.rootFolder;
+  },
+  syncFrequency(state) {
+    return state.syncFrequency;
   },
 };
 
