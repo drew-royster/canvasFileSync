@@ -32,6 +32,10 @@
     "files": [
       "dist/electron/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "private": true
+    },
     "dmg": {
       "contents": [
         {
