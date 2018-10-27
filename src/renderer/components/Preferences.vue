@@ -29,6 +29,9 @@
                 <v-btn v-if="changedSyncFrequency">Save</v-btn>        
                 <v-btn v-else disabled>Save</v-btn>        
               </v-layout>
+              <v-layout ma-2 justify-center align-center>
+                <v-btn color="red" large @click="disconnect">LOGOUT AND ERASE ALL SETTINGS</v-btn>                       
+              </v-layout>
             </v-card>
           </v-flex>
         </v-layout>
@@ -50,6 +53,9 @@ export default {
   methods: {
     chooseFolder() {
       this.$electron.ipcRenderer.send('choose-folder');
+    },
+    disconnect() {
+      this.$electron.ipcRenderer.send('disconnect');
     },
   },
   computed: {

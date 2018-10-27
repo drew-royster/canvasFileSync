@@ -32,10 +32,9 @@ const notConnectedMenu = [
   {
     label: 'Connect',
     enabled: true,
-  },
-  {
-    label: 'Sign Out',
-    enabled: false,
+    click() {
+      createWindow();
+    },
   },
   {
     label: 'Quit',
@@ -65,6 +64,13 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       click() {
         createWindow();
       }
+    },
+    {
+      label: 'Quit',
+      enabled: true,
+      click() {
+        app.quit();
+      },
     },
   ];
 };
@@ -179,6 +185,11 @@ const downloadFile = async (e, args, ipcReceiver) => {
 
 ipcMain.on('completed-initial-sync', async () => {
   updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+});
+
+ipcMain.on('disconnect', async () => {
+  dataStorage.wipeState();
+  updateMenu(notConnectedMenu);
 });
 
 ipcMain.on('create-folder', (event, folder) => {

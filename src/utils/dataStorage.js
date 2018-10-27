@@ -26,6 +26,17 @@ const getSavedState = async () => {
   }
 };
 
+const wipeState = async () => {
+  try {
+    for (let item of store) {
+      store.delete(item[0]);
+    }
+  } catch (err) {
+    console.error(err);
+    return { error: 'Problem getting saved state from disk' };
+  }
+};
+
 const isConnected = async () => {
   try {
     if (
@@ -70,6 +81,7 @@ export default {
   isConnected,
   saveCurrentState,
   getSavedState,
+  wipeState,
   getCourses,
   getSyncableCourses,
   getLastSynced,
