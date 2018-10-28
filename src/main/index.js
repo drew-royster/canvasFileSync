@@ -25,6 +25,7 @@ if (process.env.NODE_ENV !== 'development') {
 
 let mainWindow;
 let tray;
+let syncing = false;
 const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
@@ -36,6 +37,28 @@ const notConnectedMenu = [
     click() {
       createWindow();
     },
+  },
+  {
+    label: 'Quit',
+    click() {
+      app.quit();
+    },
+    accelerator: 'CommandOrControl+Q',
+  },
+];
+
+const syncingMenu = [
+  {
+    label: "Syncing...",
+    icon: path.join(__static, 'icons_normal/loading.png'),
+    enabled: false
+  },
+  {
+    label: 'Preferences',
+    enabled: true,
+    click() {
+      createWindow();
+    }
   },
   {
     label: 'Quit',
@@ -105,6 +128,20 @@ app.on('ready', async () => {
   tray.setPressedImage(
     path.join(__static, 'icons_inverted/icons/png/32x32@2x.png') // eslint-disable-line
   );
+
+  //handles windows
+  tray.on("right-click", async () => {
+    if (await dataStorage.isConnected() && !syncing) {
+      updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+    }
+  });
+
+  //handles mac
+  tray.on("mouse-enter", async () => {
+    if (await dataStorage.isConnected() && !syncing) {
+      updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+    }
+  });
 
   if (await dataStorage.isConnected()) {
     if (app.dock) app.dock.hide();
@@ -227,6 +264,8 @@ const updateMenu = (template) => {
 };
 
 const sync = async (lastSynced) => {
+  syncing = true;
+  updateMenu(syncingMenu);
   const courses = await dataStorage.getSyncableCourses();
   const authToken = await dataStorage.getAuthToken();
   const rootURL = await dataStorage.getRootURL();
@@ -245,6 +284,9 @@ const sync = async (lastSynced) => {
     coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
   });
   await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
+  await dataStorage.updateLastSynced();
+  syncing = false;
+  updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
 };
 
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {

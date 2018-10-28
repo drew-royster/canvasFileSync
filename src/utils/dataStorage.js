@@ -57,6 +57,10 @@ const getLastSynced = async () => {
   return store.get('lastSynced');
 };
 
+const updateLastSynced = async () => {
+  return store.set('lastSynced', Date.now());
+};
+
 const updateCourses = async (updatedCourses) => {
   return store.set('courses', updatedCourses);
 };
@@ -93,4 +97,5 @@ export default {
   getRootURL,
   getRootFolder,
   updateCourses,
+  updateLastSynced,
 };
