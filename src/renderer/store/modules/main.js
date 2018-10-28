@@ -92,8 +92,6 @@ const actions = {
   loadSavedState({ commit }) {
     return new Promise(async (resolve) => {
       const savedState = await dataStorage.getSavedState();
-      console.log(savedState);
-      console.log(typeof savedState);
       Object.entries(savedState).forEach(([key, value]) => {
         commit('LOAD_PROPERTY', { key, value })
       });
@@ -123,6 +121,18 @@ const actions = {
       } else {
         reject();
       }
+    });
+  },
+  clearStateGoLogin() {
+    const loadState = new Promise(async (resolve) => {
+      const savedState = await dataStorage.getSavedState();
+      Object.entries(savedState).forEach(([key, value]) => {
+        commit('LOAD_PROPERTY', { key, value })
+      });
+      resolve();
+    });
+    return loadState.then(() => {
+      router.push('/');
     });
   },
 };

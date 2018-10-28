@@ -15,7 +15,7 @@ const getActiveCanvasCourses = async (
   try {
     const options = {
       method: 'GET',
-      uri: `http://${rootURL}/api/v1/users/self/courses?enrollment_state=active`,
+      uri: `https://${rootURL}/api/v1/users/self/courses?enrollment_state=active`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
@@ -55,7 +55,7 @@ const getActiveCanvasCourses = async (
 const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
-    uri: `http://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
+    uri: `https://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -125,6 +125,7 @@ const getFiles = async (authToken, filesURL, currentPath) => {
 
 //Right now this will only get 200 files may want to add recursion into this as well
 const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced) => {
+  console.log(`fileURL:${filesURL}`);
   try {
     const options = {
       method: 'GET',
@@ -153,6 +154,7 @@ const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced
         }
     }));
   } catch (err) {
+    console.error(err);
     console.log('Problem getting new or updated files');
     return [];
   }
@@ -213,7 +215,7 @@ const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
   try {
     const options = {
       method: 'GET',
-      uri: `http://${rootURL}/api/v1/courses/${courseID}/folders/root`,
+      uri: `https://${rootURL}/api/v1/courses/${courseID}/folders/root`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
@@ -241,7 +243,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
   try {
     const options = {
       method: 'GET',
-      uri: `http://${rootURL}/api/v1/courses/${course.id}/folders?sort=updated_at&order=desc&per_page=200`,
+      uri: `https://${rootURL}/api/v1/courses/${course.id}/folders?sort=updated_at&order=desc&per_page=200`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
@@ -290,7 +292,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
     // console.log(filesLastUpdated[0].updated_at);
     // console.log(new Date(lastSynced));
     // theoretically this works, but it is not yet tested all the way through
-    if (new Date(filesLastUpdated[0].updated_at) < new Date(lastSynced)) {
+    if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
       // console.log('new file');
       return true;
     } else {

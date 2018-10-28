@@ -78,6 +78,9 @@ export default {
         this.folder = data[0];
       });
     });
+    this.$electron.ipcRenderer.on('disconnected', () => {
+      this.$store.dispatch('clearStateGoLogin');
+    });
   },
 };
 </script>

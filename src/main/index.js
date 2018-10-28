@@ -98,7 +98,6 @@ app.on('ready', async () => {
   } else {
     Menu.setApplicationMenu(applicationMenu);
   }
-  console.log(__static); // eslint-disable-line
   tray = new Tray(
     path.join(__static, 'icons_normal/icons/png/32x32@2x.png') // eslint-disable-line
   );
@@ -108,7 +107,6 @@ app.on('ready', async () => {
 
   if (await dataStorage.isConnected()) {
     if (app.dock) app.dock.hide();
-    console.log(await dataStorage.getLastSynced());
     updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
   } else {
     updateMenu(notConnectedMenu);
@@ -141,28 +139,19 @@ ipcMain.on('download-first-file', async (e, args) => {
 const downloadFile = async (e, args, ipcReceiver) => {
   const { options, file } = args;
   try {
-    // console.log(file.projectedDownloadTime);
     const timeout = new Promise(function(resolve) {
       setTimeout(resolve, file.projectedDownloadTime, 'Timed out');
     });
-    const downloadPromise = new Promise((resolve, reject) => {
-      let downloadStream = request.get(options)
-        .on('error', (err) => {
-          console.error(pe.render(err));
-          reject('failing on request');
-        })
-        .on('response', () => {
-          e.sender.send('request-done', file);
-        })
-        .pipe(fs.createWriteStream(file.fullPath, 'utf8'));
-      downloadStream
-        .on('error', () => {
-          console.error('failing on write stream');
-          reject('failing on write stream');
-        })
-        .on('finish', () => {
-          resolve('Download Finished');
-        })
+    const downloadPromise = new Promise( async (resolve, reject) => {
+      try {
+        const response = await request.get(options);
+        const buffer = Buffer.from(response, 'utf8');
+        await fs.writeFileSync(file.fullPath, buffer);
+        resolve('Download Finished');
+      } catch (err) {
+        console.error(pe.render(err));
+        reject('error downloading file');
+      }
     });
     Promise.race([timeout, downloadPromise])
       .then((response) => {
@@ -187,9 +176,10 @@ ipcMain.on('completed-initial-sync', async () => {
   updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
 });
 
-ipcMain.on('disconnect', async () => {
+ipcMain.on('disconnect', async (e) => {
   dataStorage.wipeState();
   updateMenu(notConnectedMenu);
+  e.sender.send('disconnected');
 });
 
 ipcMain.on('create-folder', (event, folder) => {
@@ -222,13 +212,14 @@ const sync = async (lastSynced) => {
   const rootFolder = await dataStorage.getRootFolder();
   const { coursesWithNewFolders, newFolders } = await getNewFolders(authToken,
     rootURL, courses, lastSynced);
+  console.log(coursesWithNewFolders);
+  console.log(newFolders);
   const foldersToBeCreated = _.flatten(newFolders);
-  console.log(foldersToBeCreated.length);
-  console.log('last');
   await createNewFolders(rootFolder, foldersToBeCreated);
   const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
     rootURL, coursesWithNewFolders, lastSynced);
   console.log(newOrUpdatedFiles);
+  console.log(coursesWithNewFilesAndFolders);
 };
 
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
@@ -303,10 +294,11 @@ const createNewFolders = async (rootFolder, folders) => {
     _.forEach(folders, async (folder) => {
       try {
         await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
-        return await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
-      } catch (err) {
-        console.error('Folder already exists');
         return 'Folder already exists';
+      } catch (err) {
+        console.error(pe.render(err));
+        console.error('Folder does not exist');
+        return await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
       }
     }));
 };

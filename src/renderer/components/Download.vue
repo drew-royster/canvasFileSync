@@ -190,7 +190,6 @@ export default {
           const options = {
             method: 'GET',
             uri: file.url,
-            headers: { Authorization: `Bearer ${this.authToken}` },
             json: true,
             encoding: null,
           };
