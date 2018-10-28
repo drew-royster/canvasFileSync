@@ -2,6 +2,7 @@
 // const { app, BrowserWindow, Menu, dialog, Tray } = require("electron");
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, ipcRenderer } from 'electron' // eslint-disable-line
 import canvasIntegration from '../utils/canvasIntegration';
+const Promise = require('bluebird');
 const path = require('path');
 const _ = require('lodash');
 const applicationMenu = require('./application-menus');
@@ -170,7 +171,27 @@ const downloadFile = async (e, args, ipcReceiver) => {
     console.error(pe.render(err));
     return e.sender.send('file-download-failed', file);
   }
-}
+};
+
+const syncDownloadFiles = async (files, rootFolder) => {
+  return Promise.map(files, async (file) => {
+    try {
+      const options = {
+        method: 'GET',
+        uri: file.url,
+        json: true,
+        encoding: null,
+      };
+      const response = await request.get(options);
+      const buffer = Buffer.from(response, 'utf8');
+      await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
+      return file;
+    } catch(err) {
+      console.error(err);
+      return file;
+    }
+  });
+};
 
 ipcMain.on('completed-initial-sync', async () => {
   updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
@@ -212,14 +233,18 @@ const sync = async (lastSynced) => {
   const rootFolder = await dataStorage.getRootFolder();
   const { coursesWithNewFolders, newFolders } = await getNewFolders(authToken,
     rootURL, courses, lastSynced);
-  console.log(coursesWithNewFolders);
-  console.log(newFolders);
   const foldersToBeCreated = _.flatten(newFolders);
   await createNewFolders(rootFolder, foldersToBeCreated);
   const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
     rootURL, coursesWithNewFolders, lastSynced);
-  console.log(newOrUpdatedFiles);
-  console.log(coursesWithNewFilesAndFolders);
+  const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
+  await Promise.map(downloadedFiles, async (file) => {
+    const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
+    const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
+      { filePath: file.filePath });
+    coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
+  });
+  await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
 };
 
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
@@ -239,7 +264,9 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
         for (let j = 0; j < courseFiles.length; j += 1) {
           const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
             { filePath: courseFiles[j]. filePath });
-          newOrUpdatedFiles.push(courseFiles[j]);
+          const fileWithID = JSON.parse(JSON.stringify(courseFiles[j]));
+          fileWithID.courseID = coursesWithNewFilesAndFolders[i].id;
+          newOrUpdatedFiles.push(fileWithID);
           if (fileIndex >= 0) {
             // console.log('updating file');
             coursesWithNewFilesAndFolders[i].files[fileIndex] = courseFiles[j];

@@ -125,7 +125,6 @@ const getFiles = async (authToken, filesURL, currentPath) => {
 
 //Right now this will only get 200 files may want to add recursion into this as well
 const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced) => {
-  console.log(`fileURL:${filesURL}`);
   try {
     const options = {
       method: 'GET',
