@@ -85,6 +85,10 @@ const getRootFolder = async () => {
   return store.get('rootFolder');
 };
 
+const getSyncFrequency = async () => {
+  return store.get('syncFrequency');
+};
+
 export default {
   isConnected,
   saveCurrentState,
@@ -98,4 +102,5 @@ export default {
   getRootFolder,
   updateCourses,
   updateLastSynced,
+  getSyncFrequency,
 };
