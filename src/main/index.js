@@ -1,7 +1,10 @@
 /* eslint-disable */
 // const { app, BrowserWindow, Menu, dialog, Tray } = require("electron");
-import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, ipcRenderer } from 'electron' // eslint-disable-line
+import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 import canvasIntegration from '../utils/canvasIntegration';
+import * as Sentry from '@sentry/electron';
+
+Sentry.init({dsn: 'https://312e7fd7b4784962ba2948b19547c3cc@sentry.io/1311555'});
 const Promise = require('bluebird');
 const path = require('path');
 const _ = require('lodash');
