@@ -152,7 +152,6 @@ app.on('ready', async () => {
   }
   // handles recurring sync
   let delay = 60 * 1000;
-
   let timerId = setTimeout(async function changeTimeout() {
     if (await dataStorage.isConnected()) {
       // multiple by 60000 because syncfreq is in minutes
