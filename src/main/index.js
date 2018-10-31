@@ -33,6 +33,7 @@ const winURL = process.env.NODE_ENV === 'development'
   : `file://${__dirname}/index.html`;
 
 const createWindow = () => {
+  if (app.dock) app.dock.show();
   mainWindow = new BrowserWindow({
     height: 600,
     width: 1000,
@@ -42,6 +43,7 @@ const createWindow = () => {
   mainWindow.loadURL(winURL);
 
   mainWindow.on('closed', () => {
+    if (app.dock) app.dock.hide();
     mainWindow = null;
   });
 };
