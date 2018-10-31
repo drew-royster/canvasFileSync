@@ -15,9 +15,13 @@ const state = {
   courses: [],
   gotAllCourses: false,
   lastSynced: null,
+  error: null,
 };
 
 const mutations = {
+  SET_ERROR(state, payload) {
+    state.error = payload.message;
+  },
   LOAD_PROPERTY(state, payload) {
     state[payload.key] = payload.value;
   },
@@ -60,24 +64,35 @@ const mutations = {
 
 const actions = {
   connect({ commit }) {
-    canvasIntegration.getActiveCanvasCourses(
-      state.authToken, state.rootURL).then((response) => {
-      let coursesAdded = 0;
-      if (response.success) {
-        response.response.forEach(async (courseItem) => {
-          if (courseItem.sync) {
-            const course = await canvasIntegration.getCourseFilesAndFolders(
-              state.authToken, courseItem);
-            commit('ADD_COURSE', course);
-          } else {
-            commit('ADD_COURSE', courseItem);
-          }
-          coursesAdded += 1;
-          if (coursesAdded === response.response.length) {
-            commit('ADDED_ALL_COURSES');
+    return new Promise((resolve, reject) => {
+      try {
+        canvasIntegration.getActiveCanvasCourses(
+          state.authToken, state.rootURL).then((response) => {
+          let coursesAdded = 0;
+          if (response.success) {
+            if (response.response.length === 0) {
+              commit('ADDED_ALL_COURSES');
+              resolve();
+            } else {
+              response.response.forEach(async (courseItem) => {
+                if (courseItem.sync) {
+                  const course = await canvasIntegration.getCourseFilesAndFolders(
+                    state.authToken, courseItem);
+                  commit('ADD_COURSE', course);
+                } else {
+                  commit('ADD_COURSE', courseItem);
+                }
+                coursesAdded += 1;
+                if (coursesAdded === response.response.length) {
+                  commit('ADDED_ALL_COURSES');
+                  resolve();
+                }
+              });
+            }
           }
         });
-        router.push('/configure');
+      } catch(err) {
+        reject('Problem getting courses');
       }
     });
   },
@@ -135,6 +150,10 @@ const actions = {
       router.push('/');
     });
   },
+  goErrorPage({ commit }, payload) {
+    commit('SET_ERROR', payload);
+    router.push('/error');
+  },
 };
 
 const getters = {
@@ -147,6 +166,9 @@ const getters = {
   courses(state) {
     return state.courses;
   },
+  syncableCourses(state) {
+    return Promise.all(_.filter(state.courses, course => course.sync));
+  },
   gotAllCourses(state) {
     return state.gotAllCourses;
   },
@@ -155,6 +177,9 @@ const getters = {
   },
   syncFrequency(state) {
     return state.syncFrequency;
+  },
+  error(state) {
+    return state.error;
   },
 };
 

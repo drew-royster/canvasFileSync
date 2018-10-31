@@ -21,6 +21,7 @@ const getActiveCanvasCourses = async (
       encoding: null,
     };
     const activeCoursesResponse = await request(options);
+    console.log(activeCourses);
     const activeCourses = await Promise.resolve(activeCoursesResponse).then(map(async (element) => {
       const sync = await hasAccessToFilesAPI(authToken, rootURL, element.id);
       if (sync) {

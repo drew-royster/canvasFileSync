@@ -51,5 +51,10 @@ export default new Router({
       name: 'Download',
       component: require('@/components/Download').default,
     },
+    {
+      path: '/error',
+      name: 'Error',
+      component: require('@/components/ErrorPage').default,
+    },
   ],
 });

@@ -8,34 +8,21 @@
     name: 'login',
     props: ['url'],
     mounted() {
-      console.log(this.$store.getters.rootURL);
       let CSRFToken = '';
       let canvasSession = '';
-      let capturedCreds = false;
+      let capturedAuthToken = false;
       const purpose = 'canvasFileSync';
-      const checkCookies = setInterval(() => {
-        const webview = document.querySelector('webview');
-        const webviewSession = webview.getWebContents().session;
-        console.log('here');
-        if (CSRFToken === '' || canvasSession === '') {
-          webview.getWebContents().on('will-navigate', async (event, webviewURL) => {
-            console.log(this.url);
-            console.log(webviewURL);
-            if (webviewURL.includes(this.url)) {
-              const cookies = webviewSession.cookies;
-              console.log('comparison matches');
-              cookies.get({ name: '_csrf_token', domain: 'uvu.instructure.com' }, async (error, cookie) => {
-                CSRFToken = cookie[0].value;
-              });
-              cookies.get({ name: 'canvas_session', domain: 'uvu.instructure.com' }, async (error, cookie) => {
-                canvasSession = cookie[0].value;
-              });
-            }
+      const getToken = setInterval(() => {
+        if (capturedAuthToken === false) {
+          const webview = document.querySelector('webview');
+          const webviewSession = webview.getWebContents().session;
+          const cookies = webviewSession.cookies;
+          cookies.get({ name: '_csrf_token', domain: this.url }, async (error, cookie) => {
+            CSRFToken = cookie[0].value;
           });
-        } else if (capturedCreds === false) {
-          console.log(`csrf_token: ${CSRFToken}`);
-          console.log(`canvas_session: ${canvasSession}`);
-          capturedCreds = true;
+          cookies.get({ name: 'canvas_session', domain: this.url }, async (error, cookie) => {
+            canvasSession = cookie[0].value;
+          });
           const options = {
             method: 'POST',
             url: `https://${this.url}/profile/tokens`,
@@ -51,12 +38,25 @@
             body: `authenticity_token=${CSRFToken}&access_token%5Bpurpose%5D=${purpose}`,
           };
 
-          request(options).then((response) => {
-            console.log(`token response: ${JSON.parse(response).visible_token}`);
-            clearInterval(checkCookies);
-            this.$store.commit('SET_AUTH_TOKEN', JSON.parse(response).visible_token);
-            this.$store.dispatch('connect');
-          });
+          request(options)
+            .then((response) => {
+              if ('visible_token' in JSON.parse(response)) {
+                capturedAuthToken = true;
+                clearTimeout(getToken);
+                this.$store.commit('SET_AUTH_TOKEN', JSON.parse(response).visible_token);
+                this.$store.dispatch('connect').then(async () => {
+                  const syncableCourses = await this.$store.getters.syncableCourses;
+                  if (syncableCourses.length > 0) {
+                    this.$router.push('/configure');
+                  } else {
+                    this.$store.dispatch('goErrorPage', { message: 'Hey buddy! You don\'t have any courses to sync. Give this app another try when you have stuff for me to do' });
+                  }
+                });
+              }
+            })
+            .catch((err) => {
+              console.error(err);
+            });
         } else {
           console.log('1 second has passed. already sent request');
         }
