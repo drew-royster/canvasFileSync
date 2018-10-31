@@ -155,6 +155,9 @@ app.on('ready', async () => {
   // handles recurring sync
   let delay = 60 * 1000;
   setTimeout(async function changeTimeout() {
+    if (process.env.NODE_ENV === 'production') {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
     if (await dataStorage.isConnected()) {
       // multiple by 60000 because syncfreq is in minutes
       delay = 60000 * (await dataStorage.getSyncFrequency());
