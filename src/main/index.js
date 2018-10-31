@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
@@ -188,10 +187,10 @@ ipcMain.on('download-first-file', async (e, args) => {
 const downloadFile = async (e, args, ipcReceiver) => {
   const { options, file } = args;
   try {
-    const timeout = new Promise(function(resolve) {
+    const timeout = new Promise((resolve) => {
       setTimeout(resolve, file.projectedDownloadTime, 'Timed out');
     });
-    const downloadPromise = new Promise( async (resolve, reject) => {
+    const downloadPromise = new Promise(async (resolve, reject) => {
       try {
         const response = await request.get(options);
         const buffer = Buffer.from(response, 'utf8');
@@ -202,13 +201,12 @@ const downloadFile = async (e, args, ipcReceiver) => {
         reject('error downloading file');
       }
     });
-    Promise.race([timeout, downloadPromise])
+    return Promise.race([timeout, downloadPromise])
       .then((response) => {
         if (response === 'Download Finished') {
           return e.sender.send(ipcReceiver, file);
-        } else {
-          return e.sender.send('file-download-failed', file);
         }
+        return e.sender.send('file-download-failed', file);
       })
       .catch((err) => {
         console.error(pe.render(err));
@@ -234,7 +232,7 @@ const syncDownloadFiles = async (files, rootFolder) => {
       const buffer = Buffer.from(response, 'utf8');
       await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
       return file;
-    } catch(err) {
+    } catch (err) {
       console.error(err);
       return file;
     }
@@ -312,11 +310,12 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
         lastSynced);
       if (courseHasNewFile) {
         // console.log('has new file(s)');
-        const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken, coursesWithNewFilesAndFolders[i], lastSynced);
+        const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken,
+          coursesWithNewFilesAndFolders[i], lastSynced);
         // console.log(`num new or updated course files: ${courseFiles.length}`);
         for (let j = 0; j < courseFiles.length; j += 1) {
           const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
-            { filePath: courseFiles[j]. filePath });
+            { filePath: courseFiles[j].filePath });
           const fileWithID = JSON.parse(JSON.stringify(courseFiles[j]));
           fileWithID.courseID = coursesWithNewFilesAndFolders[i].id;
           newOrUpdatedFiles.push(fileWithID);
@@ -378,11 +377,11 @@ const createNewFolders = async (rootFolder, folders) => {
       } catch (err) {
         console.error(pe.render(err));
         console.error('Folder does not exist');
-        return await fs.mkdirSync(path.join(rootFolder, folder.folderPath));
+        return fs.mkdirSync(path.join(rootFolder, folder.folderPath));
       }
     }));
 };
 
 autoUpdater.on('update-downloaded', () => {
-  autoUpdater.quitAndInstall()
+  autoUpdater.quitAndInstall();
 });

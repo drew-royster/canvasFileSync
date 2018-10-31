@@ -124,7 +124,6 @@
 </template>
 
 <script>
-  const request = require('request-promise');
   export default {
     name: 'configure',
     data() {
@@ -141,32 +140,6 @@
       },
       gotAllCourses() {
         return this.$store.getters.gotAllCourses;
-      },
-    },
-    watch: {
-      search(val) {
-        // Items have already been loaded
-        // if (this.items.length > 0) return;
-        if (this.school && val !== this.school.name) {
-          this.school = null;
-        }
-        this.isLoading = true;
-        // Lazily load input items
-        const options = {
-          method: 'GET',
-          uri: `https://canvas.instructure.com/api/v1/accounts/search?name=${val}`,
-          json: true,
-        };
-        request(options).then((res) => {
-          console.log(res);
-          console.log(res.length);
-          this.count = res.length;
-          this.schools = res;
-        }).catch((err) => {
-          console.log(err);
-        }).finally(() => {
-          this.isLoading = false;
-        });
       },
     },
     methods: {
@@ -187,22 +160,3 @@
     },
   };
 </script>
-
-<style scoped>
-  .centered
-  {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .logo
-  {
-    margin-top: 5%;
-    max-width: 100%;
-  }
-  .link-btn
-  {
-    width: 150px;
-  }
-</style>

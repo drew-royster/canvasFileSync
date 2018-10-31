@@ -139,6 +139,7 @@
               const cleanURL = this.cleanURL(this.schoolURL);
               this.$store.commit('SET_CONNECTION_PARAMETERS', { rootURL: cleanURL, authToken: this.authToken });
               this.$store.dispatch('connect');
+              this.$router.push('/configure');
             } else {
               this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
             }
