@@ -1,5 +1,6 @@
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
+const appVersion = require('../../../../package').version;
 const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
@@ -10,6 +11,7 @@ const state = {
   rootURL: null,
   rootFolder: null,
   syncFrequency: null,
+  version: appVersion,
   courses: [],
   gotAllCourses: false,
   lastSynced: null,
@@ -17,6 +19,9 @@ const state = {
 };
 
 const mutations = {
+  UPDATE_SYNC_FREQUENCY(state, payload) {
+    state.syncFrequency = parseInt(payload.newFrequency, 10);
+  },
   SET_ERROR(state, payload) {
     state.error = payload.message;
   },
@@ -152,6 +157,18 @@ const actions = {
     commit('SET_ERROR', payload);
     router.push('/error');
   },
+  updateSyncFrequency({ commit }, payload) {
+    return new Promise((resolve, reject) => {
+      commit('UPDATE_SYNC_FREQUENCY', payload);
+      dataStorage.updateSyncFrequency(payload)
+        .then(() => {
+          resolve('Updated Sync Frequency Successfully');
+        })
+        .catch(() => {
+          reject('Problem updating Sync Frequency');
+        });
+    });
+  },
 };
 
 const getters = {
@@ -178,6 +195,9 @@ const getters = {
   },
   error(state) {
     return state.error;
+  },
+  version(state) {
+    return state.version;
   },
 };
 

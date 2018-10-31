@@ -1,5 +1,19 @@
 <template>
   <v-content>
+    <v-alert
+      :value="displaySuccess"
+      type="success"
+      dismissible
+    >
+      {{ successMessage }}
+    </v-alert>
+    <v-alert
+      :value="displayFailure"
+      type="success"
+      dismissible
+    >
+      {{ failureMessage }}
+    </v-alert>
     <v-layout mt-5 justify-center align-center row>
       <v-flex xs12 sm8>
         <v-layout row>
@@ -12,11 +26,6 @@
         <v-layout row>
           <v-flex>
             <v-card>
-              <!-- Disabling for now, because this would require more setup -->
-              <!-- <v-layout ma-2 justify-start align-center row>
-                <h1 class="headline">Sync Folder</h1>             
-                <v-btn large @click="chooseFolder">{{ folder }}</v-btn>                       
-              </v-layout> -->
               <v-layout ma-2 align-center>
                 <h1 class="headline">Sync Frequency</h1>
                 <v-flex ml-2 xs1>
@@ -26,7 +35,7 @@
                     type="number"
                   ></v-text-field>          
                 </v-flex>
-                <v-btn v-if="changedSyncFrequency">Save</v-btn>        
+                <v-btn v-if="changedSyncFrequency" @click="updateSyncFrequency">Save</v-btn>        
                 <v-btn v-else disabled>Save</v-btn>        
               </v-layout>
               <v-layout ma-2 justify-center align-center>
@@ -39,7 +48,7 @@
                   py-3
                   text-xs-center
                   xs12
-                >CANVAS FILE SYNC &copy; v0.1.2</v-flex>
+                >CANVAS FILE SYNC &copy; v{{ version }}</v-flex>
                 </v-footer>
               </v-layout>
             </v-card>
@@ -51,13 +60,16 @@
 </template>
 
 <script>
-
 export default {
   name: 'Preferences',
   data() {
     return {
       localSyncFrequency: 0,
       folder: 'Choose Folder',
+      displayFailure: false,
+      displaySuccess: false,
+      successMessage: '',
+      failureMessage: '',
     };
   },
   methods: {
@@ -67,16 +79,32 @@ export default {
     disconnect() {
       this.$electron.ipcRenderer.send('disconnect');
     },
+    updateSyncFrequency() {
+      this.$store.dispatch('updateSyncFrequency', { newFrequency: this.localSyncFrequency })
+        .then((response) => {
+          console.log(response);
+          this.displaySuccess = true;
+          this.successMessage = response;
+        })
+        .catch((err) => {
+          console.error(err);
+          this.displayFailure = true;
+          this.failureMessage = JSON.stringify(err);
+        });
+    },
   },
   computed: {
     syncFrequency() {
       return this.$store.getters.syncFrequency;
     },
     changedSyncFrequency() {
-      if (this.localSyncFrequency !== this.syncFrequency) {
+      if (parseInt(this.localSyncFrequency, 10) !== parseInt(this.syncFrequency, 10)) {
         return true;
       }
       return false;
+    },
+    version() {
+      return this.$store.getters.version;
     },
   },
   mounted() {

@@ -65,6 +65,10 @@ const updateCourses = async (updatedCourses) => {
   return store.set('courses', updatedCourses);
 };
 
+const updateSyncFrequency = async ( frequencyObject ) => {
+  return store.set('syncFrequency', parseInt(frequencyObject.newFrequency));
+};
+
 const getCourses = async () => {
   return store.get('courses');
 };
@@ -103,4 +107,5 @@ export default {
   updateCourses,
   updateLastSynced,
   getSyncFrequency,
+  updateSyncFrequency,
 };
