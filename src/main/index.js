@@ -172,7 +172,10 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.on('choose-folder', (event) => {
-  const folder = dialog.showOpenDialog({ properties: ['openDirectory'] });
+  let folder = dialog.showOpenDialog({ properties: ['openDirectory'] });
+  if (folder === undefined) {
+    folder = 'No folder chosen';
+  }
   event.sender.send('chose-folder', folder);
 });
 

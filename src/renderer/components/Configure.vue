@@ -15,7 +15,7 @@
           </v-progress-circular>  
         </v-layout>
         <v-stepper v-else v-model="step" vertical>        
-          <v-stepper-step :complete="step > 1" step="1">What will sync?</v-stepper-step>
+          <v-stepper-step editable :complete="step > 1" step="1">What will sync?</v-stepper-step>
           <v-stepper-items>
             <v-stepper-content step="1">
               <v-card >
@@ -57,7 +57,7 @@
               </v-btn>
             </v-stepper-content>
       
-            <v-stepper-step :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
+            <v-stepper-step editable :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
             <v-stepper-content step="2">
               <v-layout row>
                 <v-flex mb-2 large>
@@ -82,7 +82,7 @@
               </v-btn>
             </v-stepper-content>
             
-            <v-stepper-step step="3">How often?</v-stepper-step>
+            <v-stepper-step editable step="3">How often?</v-stepper-step>
             <v-stepper-content step="3">
               <v-layout column pl-2>
                 <v-layout row>
@@ -94,6 +94,8 @@
                   <v-flex xs1>
                     <v-text-field
                       v-model="syncFrequency"
+                      :rules="[() => parseInt(syncFrequency) > 0 || 'Must be greater than zero']"
+                      ref="syncFrequency"
                       class="mt-0 headline"
                       type="number"
                     ></v-text-field>
@@ -143,15 +145,17 @@
         this.$electron.ipcRenderer.send('choose-folder');
       },
       beginSync() {
-        if (this.folderChosen) {
+        if (this.folderChosen && this.$refs.syncFrequency.validate(true)) {
           this.$store.dispatch('beginInitialSync', { rootFolder: this.folder, syncFrequency: this.syncFrequency });
         }
       },
     },
     mounted() {
       this.$electron.ipcRenderer.on('chose-folder', (event, data) => {
-        this.folderChosen = true;
-        this.folder = data[0];
+        if (data !== 'No folder chosen') {
+          this.folderChosen = true;
+          this.folder = data[0];
+        }
       });
     },
   };
