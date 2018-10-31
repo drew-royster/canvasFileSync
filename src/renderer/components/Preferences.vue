@@ -26,16 +26,19 @@
         <v-layout row>
           <v-flex>
             <v-card>
-              <v-layout ma-2 align-center>
+              <v-layout ma-2 align-center ref="frequencyForm">
                 <h1 class="headline">Sync Frequency</h1>
                 <v-flex ml-2 xs1>
                   <v-text-field
+                    ref="localSyncFrequency"
                     v-model="localSyncFrequency"
+                    :rules="[() => parseInt(localSyncFrequency) > 0 || 'Must be greater than zero']"
+                    required
                     class="mt-0 headline"
                     type="number"
                   ></v-text-field>          
                 </v-flex>
-                <v-btn v-if="changedSyncFrequency" @click="updateSyncFrequency">Save</v-btn>        
+                <v-btn v-if="validSyncFrequency" @click="updateSyncFrequency">Save</v-btn>        
                 <v-btn v-else disabled>Save</v-btn>        
               </v-layout>
               <v-layout ma-2 justify-center align-center>
@@ -80,24 +83,26 @@ export default {
       this.$electron.ipcRenderer.send('disconnect');
     },
     updateSyncFrequency() {
-      this.$store.dispatch('updateSyncFrequency', { newFrequency: this.localSyncFrequency })
-        .then((response) => {
-          console.log(response);
-          this.displaySuccess = true;
-          this.successMessage = response;
-        })
-        .catch((err) => {
-          console.error(err);
-          this.displayFailure = true;
-          this.failureMessage = JSON.stringify(err);
-        });
+      if (this.$refs.localSyncFrequency.validate(true)) {
+        this.$store.dispatch('updateSyncFrequency', { newFrequency: this.localSyncFrequency })
+          .then((response) => {
+            console.log(response);
+            this.displaySuccess = true;
+            this.successMessage = response;
+          })
+          .catch((err) => {
+            console.error(err);
+            this.displayFailure = true;
+            this.failureMessage = JSON.stringify(err);
+          });
+      }
     },
   },
   computed: {
     syncFrequency() {
       return this.$store.getters.syncFrequency;
     },
-    changedSyncFrequency() {
+    validSyncFrequency() {
       if (parseInt(this.localSyncFrequency, 10) !== parseInt(this.syncFrequency, 10)) {
         return true;
       }
