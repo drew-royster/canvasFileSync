@@ -30,12 +30,8 @@
                       :key="course.id"
                       >
                       <v-list-tile-action>
-                        <v-btn v-if="course.sync" icon ripple>
-                          <v-icon color="green">class</v-icon>
-                        </v-btn>
-                        <v-btn v-else icon ripple>
-                          <v-icon color="red">class</v-icon>
-                        </v-btn>
+                        <v-icon v-if="course.sync" color="green">class</v-icon>
+                        <v-icon v-else color="red">class</v-icon>
                       </v-list-tile-action>
                       <v-list-tile-content>
                       <v-list-tile-title v-if="course.sync">
