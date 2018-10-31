@@ -15,7 +15,7 @@ const fs = require('fs');
 const request = require('request-promise');
 const PrettyError = require('pretty-error');
 const pe = new PrettyError();
-
+autoUpdater.autoDownload = true;
 
 /**
  * Set `__static` path to static files in production
@@ -116,7 +116,11 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 };
 
 app.on('ready', async () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdatesAndNotify();
+  if (process.env.NODE_ENV === 'production') {
+    autoUpdater.on('update-downloaded', () => {
+      autoUpdater.quitAndInstall();
+    });
+  }
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
