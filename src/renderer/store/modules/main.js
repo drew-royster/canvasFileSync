@@ -1,5 +1,3 @@
-/* eslint-disable */
-// import { dialog } from 'electron'; // eslint-disable-line
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
 const dataStorageFile = require('../../../utils/dataStorage');
@@ -91,7 +89,7 @@ const actions = {
             }
           }
         });
-      } catch(err) {
+      } catch (err) {
         reject('Problem getting courses');
       }
     });
@@ -108,7 +106,7 @@ const actions = {
     return new Promise(async (resolve) => {
       const savedState = await dataStorage.getSavedState();
       Object.entries(savedState).forEach(([key, value]) => {
-        commit('LOAD_PROPERTY', { key, value })
+        commit('LOAD_PROPERTY', { key, value });
       });
       resolve();
     });
@@ -138,11 +136,11 @@ const actions = {
       }
     });
   },
-  clearStateGoLogin() {
+  clearStateGoLogin({ commit }) {
     const loadState = new Promise(async (resolve) => {
       const savedState = await dataStorage.getSavedState();
       Object.entries(savedState).forEach(([key, value]) => {
-        commit('LOAD_PROPERTY', { key, value })
+        commit('LOAD_PROPERTY', { key, value });
       });
       resolve();
     });
