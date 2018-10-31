@@ -1,10 +1,10 @@
 /* eslint-disable */
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
-import { autoUpdater } from 'electron-updater'
-import canvasIntegration from '../utils/canvasIntegration';
+import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
+import canvasIntegration from '../utils/canvasIntegration';
 
-Sentry.init({dsn: 'https://312e7fd7b4784962ba2948b19547c3cc@sentry.io/1311555'});
+Sentry.init({ dsn: 'https://312e7fd7b4784962ba2948b19547c3cc@sentry.io/1311555' });
 const Promise = require('bluebird');
 const path = require('path');
 const _ = require('lodash');
@@ -33,6 +33,20 @@ const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
 
+const createWindow = () => {
+  mainWindow = new BrowserWindow({
+    height: 600,
+    width: 1000,
+    webPreferences: { webSecurity: false },
+  });
+
+  mainWindow.loadURL(winURL);
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+};
+
 const notConnectedMenu = [
   {
     label: 'Connect',
@@ -52,16 +66,16 @@ const notConnectedMenu = [
 
 const syncingMenu = [
   {
-    label: "Syncing...",
+    label: 'Syncing...',
     icon: path.join(__static, 'icons_normal/loading.png'),
-    enabled: false
+    enabled: false,
   },
   {
     label: 'Preferences',
     enabled: true,
     click() {
       createWindow();
-    }
+    },
   },
   {
     label: 'Quit',
@@ -90,7 +104,7 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       enabled: true,
       click() {
         createWindow();
-      }
+      },
     },
     {
       label: 'Quit',
@@ -102,22 +116,8 @@ const getUpdatedConnectedMenu = (lastSynced) => {
   ];
 };
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    height: 600,
-    width: 1000,
-    webPreferences: { webSecurity: false },
-  });
-
-  mainWindow.loadURL(winURL);
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-};
-
 app.on('ready', async () => {
-  if (process.env.NODE_ENV === 'production') appUpdater.checkForUpdatesAndNotify();
+  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdatesAndNotify();
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
@@ -130,15 +130,15 @@ app.on('ready', async () => {
     path.join(__static, 'icons_inverted/icons/png/32x32@2x.png') // eslint-disable-line
   );
 
-  //handles windows
-  tray.on("right-click", async () => {
+  // handles windows
+  tray.on('right-click', async () => {
     if (await dataStorage.isConnected() && !syncing) {
       updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
     }
   });
 
-  //handles mac
-  tray.on("mouse-enter", async () => {
+  // handles mac
+  tray.on('mouse-enter', async () => {
     if (await dataStorage.isConnected() && !syncing) {
       updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
     }
@@ -153,13 +153,13 @@ app.on('ready', async () => {
   }
   // handles recurring sync
   let delay = 60 * 1000;
-  let timerId = setTimeout(async function changeTimeout() {
+  setTimeout(async function changeTimeout() {
     if (await dataStorage.isConnected()) {
       // multiple by 60000 because syncfreq is in minutes
       delay = 60000 * (await dataStorage.getSyncFrequency());
       sync();
     }
-    timerId = setTimeout(changeTimeout, delay);
+    setTimeout(changeTimeout, delay);
   }, delay);
 });
 
@@ -174,10 +174,10 @@ ipcMain.on('choose-folder', (event) => {
 
 ipcMain.on('download-file', async (e, args) => {
   try {
-    downloadFile(e, args, 'file-downloaded');
+    return downloadFile(e, args, 'file-downloaded');
   } catch (err) {
     console.error(pe.render(err));
-    return e.sender.send('file-download-failed', file);
+    return e.sender.send('file-download-failed', args.file);
   }
 });
 
