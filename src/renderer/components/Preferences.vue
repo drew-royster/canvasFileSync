@@ -32,6 +32,16 @@
               <v-layout ma-2 justify-center align-center>
                 <v-btn color="red" large @click="disconnect">LOGOUT AND ERASE ALL SETTINGS</v-btn>                       
               </v-layout>
+              <v-layout mt-5 justify-center align-center>
+                <v-footer class=“pa-3” absolute>
+                  <v-spacer></v-spacer>
+                  <v-flex
+                  py-3
+                  text-xs-center
+                  xs12
+                >CANVAS FILE SYNC &copy; v0.0.8</v-flex>
+                </v-footer>
+              </v-layout>
             </v-card>
           </v-flex>
         </v-layout>
