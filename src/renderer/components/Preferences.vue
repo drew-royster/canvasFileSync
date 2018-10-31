@@ -39,7 +39,7 @@
                   py-3
                   text-xs-center
                   xs12
-                >CANVAS FILE SYNC &copy; v0.0.9</v-flex>
+                >CANVAS FILE SYNC &copy; v0.1</v-flex>
                 </v-footer>
               </v-layout>
             </v-card>
