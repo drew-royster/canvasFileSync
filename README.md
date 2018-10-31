@@ -1,4 +1,4 @@
-# Canvas File Sync
+# Introduction
 
 When using Canvas, I found that constantly downloading new files, updated files and then organizing those files was a huge pain. This program aims to work by having Google Drive like functionality with Canvas so that you never have to worry about being up to date or how you have organized things, because they will be organized on your computer just as they are organized on Canvas.
 
@@ -6,22 +6,20 @@ When using Canvas, I found that constantly downloading new files, updated files 
 
 ## Running this code
 
-Clone this repository and run `npm i`. Once it's done installing the modules, run `npm run dev`
+Clone this repository and run `yarn`. Once it's done installing the modules, run `yarn run dev`
 
-## Getting Started
+## Building this code
 
-Click on CFS icon and then `Connect`
+`yarn run build:mac`
 
-![alt text](https://media.giphy.com/media/5bmF0WnaHqtHsqCGvz/giphy.gif "Click on Connect")
+`yarn run build:win`
 
-Enter your school as it appears in the instructure link e.g. `https://uvu.instructure.com` 
+### Note
 
-![alt text](https://media.giphy.com/media/jyGY5USB37zulErw8Z/giphy.gif "School")
+Releases are being code signed so your personal build will not work with the built in autoupdating
 
-Login to canvas
+## TODO
+- [ ] Toggle courses/folders to sync
+- [ ] Increase initial download speed
 
-![alt text](https://media.giphy.com/media/3fhXi5eMrTtpTrZfJJ/giphy.gif "Login to Canvas")
 
-Choose the folder you'd like to sync to
-
-![alt text](https://media.giphy.com/media/5wG5eUinoFpqzBvbo4/giphy.gif "Choose folder")
