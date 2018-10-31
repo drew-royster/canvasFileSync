@@ -3,8 +3,6 @@ const request = require('request-promise');
 const Promise = require('bluebird');
 const map = require('promise-map');
 const path = require('path');
-const fs = require('fs');
-const log = require('electron-log');
 const _ = require('lodash');
 const filenamify = require('filenamify');
 
@@ -21,7 +19,6 @@ const getActiveCanvasCourses = async (
       encoding: null,
     };
     const activeCoursesResponse = await request(options);
-    console.log(activeCourses);
     const activeCourses = await Promise.resolve(activeCoursesResponse).then(map(async (element) => {
       const sync = await hasAccessToFilesAPI(authToken, rootURL, element.id);
       if (sync) {
