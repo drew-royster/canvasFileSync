@@ -156,7 +156,7 @@ app.on('ready', async () => {
   let delay = 60 * 1000;
   setTimeout(async function changeTimeout() {
     if (process.env.NODE_ENV === 'production') {
-      autoUpdater.checkForUpdatesAndNotify();
+      autoUpdater.checkForUpdates();
     }
     if (await dataStorage.isConnected()) {
       // multiple by 60000 because syncfreq is in minutes
