@@ -49,7 +49,7 @@
                   if (syncableCourses.length > 0) {
                     this.$router.push('/configure');
                   } else {
-                    this.$store.dispatch('goErrorPage', { message: 'Hey buddy! You don\'t have any courses to sync. Give this app another try when you have stuff for me to do' });
+                    this.$store.dispatch('goErrorPage', { message: 'Hey buddy! You don\'t have any courses to sync. Give this app another try when you have courses to sync' });
                   }
                 });
               }
