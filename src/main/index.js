@@ -1,6 +1,6 @@
 /* eslint-disable */
-// const { app, BrowserWindow, Menu, dialog, Tray } = require("electron");
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
+import { autoUpdater } from 'electron-updater'
 import canvasIntegration from '../utils/canvasIntegration';
 import * as Sentry from '@sentry/electron';
 
@@ -103,9 +103,6 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 };
 
 function createWindow() {
-  /**
-   * Initial window options
-   */
   mainWindow = new BrowserWindow({
     height: 600,
     width: 1000,
@@ -120,6 +117,7 @@ function createWindow() {
 };
 
 app.on('ready', async () => {
+  if (process.env.NODE_ENV === 'production') appUpdater.checkForUpdatesAndNotify();
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
@@ -385,20 +383,6 @@ const createNewFolders = async (rootFolder, folders) => {
     }));
 };
 
-/**
- * Auto Updater
- *
- * Uncomment the following code below and install `electron-updater` to
- * support auto updating. Code Signing with a valid certificate is required.
- * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-electron-builder.html#auto-updating
- */
-
-import { autoUpdater } from 'electron-updater'
-
 autoUpdater.on('update-downloaded', () => {
   autoUpdater.quitAndInstall()
-});
-
-app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
 });
