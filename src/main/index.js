@@ -117,9 +117,7 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 
 app.on('ready', async () => {
   if (process.env.NODE_ENV === 'production') {
-    autoUpdater.on('update-downloaded', () => {
-      autoUpdater.quitAndInstall();
-    });
+    autoUpdater.checkForUpdatesAndNotify();
   }
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
