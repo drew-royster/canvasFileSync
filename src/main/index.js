@@ -108,7 +108,7 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       },
     },
     {
-      label: 'Restart and Update',
+      label: 'Restart',
       enabled: true,
       click() {
         app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) });
