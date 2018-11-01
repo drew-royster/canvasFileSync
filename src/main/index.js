@@ -108,6 +108,14 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       },
     },
     {
+      label: 'Restart and Update',
+      enabled: true,
+      click() {
+        app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) });
+        app.exit(0);
+      },
+    },
+    {
       label: 'Quit',
       enabled: true,
       click() {
@@ -118,9 +126,6 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 };
 
 app.on('ready', async () => {
-  if (process.env.NODE_ENV === 'production') {
-    autoUpdater.checkForUpdatesAndNotify();
-  }
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
   } else {
