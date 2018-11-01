@@ -393,5 +393,7 @@ const createNewFolders = async (rootFolder, folders) => {
 };
 
 autoUpdater.on('update-downloaded', () => {
-  autoUpdater.quitAndInstall();
+  autoUpdater.quitAndInstall(false, true);
 });
+
+app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
