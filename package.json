@@ -1,6 +1,6 @@
 {
   "name": "canvas-file-sync",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "author": "Drew Royster <drew.royster@gmail.com>",
   "description": "Syncs canvas course files to your local machine",
   "main": "./dist/electron/main.js",
