@@ -16,7 +16,7 @@ Clone this repository and run `yarn`. Once it's done installing the modules, run
 
 ### Note
 
-Releases are being code signed so your personal build will not work with the built in autoupdating
+Releases are being code signed so your personal build will not work with the built in autoupdating.
 
 ## TODO
 - [ ] Toggle courses/folders to sync
