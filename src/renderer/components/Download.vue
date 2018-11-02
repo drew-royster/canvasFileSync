@@ -41,7 +41,7 @@ export default {
     return {
       progressMessage: 'Creating Folders',
       tips: [
-        'Need updates NOW? Click on the CFS icon in system tray and then "Sync Now"',
+        'Need updates NOW? Click on the CFS icon in system tray and then "Sync Now".',
         'CFS will overwrite any changes you make to files in the sync folder. Copy them somwhere else if you need to edit them.',
         'Suggestions? Issues with the app? Tweet or DM @canvasfilesync',
         'This first download may take a while. Leave this window open, but feel free to go about your business.',
