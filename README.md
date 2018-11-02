@@ -21,5 +21,7 @@ Releases are being code signed so your personal build will not work with the bui
 ## TODO
 - [ ] Toggle courses/folders to sync
 - [ ] Increase initial download speed
+- [ ] Handle situations more gracefully where an update has occurred both locally and remotely
+- [ ] Handle courses where professor uses modules view(files api is disabled when they do this)
 
 
