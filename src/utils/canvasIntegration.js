@@ -126,7 +126,7 @@ const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced
   try {
     const options = {
       method: 'GET',
-      uri: `${filesURL}/?per_page=200`,
+      uri: `${filesURL}/?per_page=200&sort=updated_at&order=desc`,
       headers: { Authorization: `Bearer ${authToken}` },
       json: true,
       encoding: null,
@@ -286,6 +286,9 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
       encoding: null,
     };
     const filesLastUpdated = await request(options);
+    console.log(filesLastUpdated[0]);
+    console.log(new Date(filesLastUpdated[0].updated_at));
+    console.log(new Date(lastSynced));
     // console.log(filesLastUpdated[0].updated_at);
     // console.log(new Date(lastSynced));
     // theoretically this works, but it is not yet tested all the way through

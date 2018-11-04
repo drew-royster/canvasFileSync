@@ -168,7 +168,7 @@ app.on('ready', async () => {
     if (await dataStorage.isConnected()) {
       // multiple by 60000 because syncfreq is in minutes
       delay = 60000 * (await dataStorage.getSyncFrequency());
-      sync();
+      sync(await dataStorage.getLastSynced());
     }
     setTimeout(changeTimeout, delay);
   }, delay);
