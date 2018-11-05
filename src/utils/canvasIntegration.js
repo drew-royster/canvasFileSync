@@ -165,6 +165,7 @@ const findAllFolders = async (authToken, course) => {
           return Promise.map(items, (item) => {
               files.push(item);
               if (item.folders_count > 0) {
+                console.log(item);
                 return findFolders(authToken, item, item.folderPath, files);
               } 
           }) 

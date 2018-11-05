@@ -19,7 +19,7 @@
           <v-layout mb-3 justify-center align-center row>
             <h1>Successes</h1>
             <v-badge color="green">
-              <span slot="badge">{{ successes }}</span>
+              <span id="successesSpan" slot="badge">{{ successes }}</span>
               <v-icon
                 large
                 color="grey"
@@ -31,7 +31,7 @@
           <v-layout justify-center align-center row>
             <h1>Failures</h1> 
             <v-badge color="red">
-              <span slot="badge">{{ failures }}</span>
+              <span id="failuresSpan" slot="badge">{{ failures }}</span>
               <v-icon
                 large
                 color="grey"
