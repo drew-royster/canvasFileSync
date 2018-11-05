@@ -1,4 +1,4 @@
-import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
+import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, Notification } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
 import canvasIntegration from '../utils/canvasIntegration';
