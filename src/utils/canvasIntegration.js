@@ -287,11 +287,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
       encoding: null,
     };
     const filesLastUpdated = await request(options);
-    console.log(filesLastUpdated[0]);
-    console.log(new Date(filesLastUpdated[0].updated_at));
-    console.log(new Date(lastSynced));
-    // console.log(filesLastUpdated[0].updated_at);
-    // console.log(new Date(lastSynced));
+    
     // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
       // console.log('new file');

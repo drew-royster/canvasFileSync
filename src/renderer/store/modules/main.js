@@ -6,6 +6,8 @@ const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
 const _ = require('lodash');
 
+console.log(appVersion);
+
 const state = {
   authToken: null,
   rootURL: null,

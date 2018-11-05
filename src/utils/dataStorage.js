@@ -17,7 +17,9 @@ const getSavedState = async () => {
   try {
     const state = {};
     for (let [key, value] of store) {
-      state[key] = value;
+      if (key !== 'version') {
+        state[key] = value;
+      }
     }
     return state;
   } catch (err) {
