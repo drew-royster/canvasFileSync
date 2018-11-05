@@ -184,8 +184,10 @@ const findAllFiles = async (authToken, folders) => {
   try {
     let files = [];
     await Promise.map(folders, async (folder) => {
-      const folderFiles = await getFiles(authToken, folder.files_url, folder.folderPath);
-      files = files.concat(folderFiles);
+      if (folder.files_count > 0) {
+        const folderFiles = await getFiles(authToken, folder.files_url, folder.folderPath);
+        files = files.concat(folderFiles);
+      }
     })
     return files;
   } catch (error) {
@@ -287,7 +289,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
       encoding: null,
     };
     const filesLastUpdated = await request(options);
-    
+
     // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
       // console.log('new file');
