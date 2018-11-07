@@ -1,4 +1,4 @@
-import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, Notification } from 'electron' // eslint-disable-line
+import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
 import canvasIntegration from '../utils/canvasIntegration';
@@ -6,6 +6,7 @@ import canvasIntegration from '../utils/canvasIntegration';
 Sentry.init({ dsn: 'https://312e7fd7b4784962ba2948b19547c3cc@sentry.io/1311555' });
 const Promise = require('bluebird');
 const path = require('path');
+const log = require('electron-log');
 const _ = require('lodash');
 const applicationMenu = require('./application-menus');
 const dataStorageFile = require('../utils/dataStorage');
@@ -16,6 +17,8 @@ const request = require('request-promise');
 const PrettyError = require('pretty-error');
 const pe = new PrettyError();
 autoUpdater.autoDownload = true;
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
 
 /**
  * Set `__static` path to static files in production
@@ -324,10 +327,10 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
         coursesWithNewFilesAndFolders[i].id,
         lastSynced);
       if (courseHasNewFile) {
-        // console.log('has new file(s)');
+        log.info('has new file(s)');
         const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken,
           coursesWithNewFilesAndFolders[i], lastSynced);
-        // console.log(`num new or updated course files: ${courseFiles.length}`);
+        log.info(`num new or updated course files: ${courseFiles.length}`);
         for (let j = 0; j < courseFiles.length; j += 1) {
           const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
             { filePath: courseFiles[j].filePath });
@@ -335,21 +338,21 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
           fileWithID.courseID = coursesWithNewFilesAndFolders[i].id;
           newOrUpdatedFiles.push(fileWithID);
           if (fileIndex >= 0) {
-            // console.log('updating file');
+            log.info('updating file');
             coursesWithNewFilesAndFolders[i].files[fileIndex] = courseFiles[j];
           } else {
             coursesWithNewFilesAndFolders[i].files.push(courseFiles[j]);
           }
         }
       } else {
-        console.log('no new files');
+        log.info('no new files');
       }
     }
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
   } catch (err) {
-    console.error('Error getting new files');
+    log.error('Error getting new files');
     // console.log(courses);
-    console.error(pe.render(err));
+    log.error(pe.render(err));
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
   }
 };
@@ -366,10 +369,10 @@ const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
         const folderIndex = _.findIndex(coursesWithNewFolders[i].folders,
           { folderPath: courseNewFolders[j].folderPath });
         if (folderIndex >= 0) {
-          // console.log('updating folder');
+          log.info('updating folder');
           coursesWithNewFolders[i].folders[folderIndex] = courseNewFolders[j];
         } else {
-          // console.log('brand new folder');
+          log.info('brand new folder');
           coursesWithNewFolders[i].folders.push(courseNewFolders[j]);
           newFolders.push(courseNewFolders[j]);
         }
@@ -377,8 +380,8 @@ const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
     }
     return { coursesWithNewFolders, newFolders };
   } catch (err) {
-    console.error('Error getting new folders');
-    console.error(pe.render(err));
+    log.error('Error getting new folders');
+    log.error(pe.render(err));
     return { coursesWithNewFolders, newFolders };
   }
 };
@@ -390,8 +393,8 @@ const createNewFolders = async (rootFolder, folders) => {
         await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
-        console.error(pe.render(err));
-        console.error('Folder does not exist');
+        log.error(pe.render(err));
+        log.error('Folder does not exist');
         return fs.mkdirSync(path.join(rootFolder, folder.folderPath));
       }
     }));

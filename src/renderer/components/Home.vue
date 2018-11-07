@@ -87,6 +87,7 @@
 </template>
 
 <script>
+  const log = require('electron-log');
   const request = require('request-promise');
   export default {
     name: 'home',
@@ -125,7 +126,7 @@
           this.count = res.length;
           this.schools = res;
         }).catch((err) => {
-          console.log(err);
+          log.error(err);
         }).finally(() => {
           this.isLoading = false;
         });
@@ -144,7 +145,7 @@
               this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
             }
           } catch (err) {
-            console.error(err);
+            log.error(err);
           }
         }
       },

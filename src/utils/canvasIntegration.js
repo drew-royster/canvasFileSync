@@ -4,6 +4,7 @@ const Promise = require('bluebird');
 const map = require('promise-map');
 const path = require('path');
 const _ = require('lodash');
+const log = require('electron-log');
 const filenamify = require('filenamify');
 
 const getActiveCanvasCourses = async (
@@ -64,7 +65,6 @@ const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
   } catch (err) {
       return false;
   }
-  return false;
 };
 
 
@@ -165,7 +165,7 @@ const findAllFolders = async (authToken, course) => {
           return Promise.map(items, (item) => {
               files.push(item);
               if (item.folders_count > 0) {
-                console.log(item);
+                log.info(item);
                 return findFolders(authToken, item, item.folderPath, files);
               } 
           }) 
@@ -176,7 +176,7 @@ const findAllFolders = async (authToken, course) => {
     }
     return findFolders(authToken, course, course.name);
   } catch (error) {
-    console.error(error);
+    log.error(error);
   }
 };
 
@@ -191,7 +191,7 @@ const findAllFiles = async (authToken, folders) => {
     })
     return files;
   } catch (error) {
-    console.error(error);
+    log.error(error);
   }
 }
 
@@ -206,7 +206,7 @@ const getAllNewOrUpdatedFiles = async (authToken, course, lastSynced) => {
     })
     return files;
   } catch (error) {
-    console.log('problem getting new files');
+    log.error('problem getting new files');
     // console.error(error);
   }
 }
@@ -223,7 +223,7 @@ const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
     const rootFolderResponse = await request(options);
     return { files_url: rootFolderResponse.files_url, folders_url: rootFolderResponse.folders_url };
   } catch (err) {
-    console.error(err);
+    log.error(err);
     return { error: 'Problem getting course files folder' };
   }
 };
@@ -274,7 +274,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
     });
     return newFolders;
   } catch (err) {
-    console.error(err);
+    log.error(err);
     return newFolders;
   }
 };
@@ -292,14 +292,14 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
 
     // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
-      // console.log('new file');
+      log.info('new file');
       return true;
     } else {
-      // console.log('no new files');
+      log.info('no new files');
       return false;
     }
   } catch (err) {
-    console.log(`Error checking if ${courseID} has new files`);
+    log.error(`Error checking if ${courseID} has new files`);
     return false;
   }
 };

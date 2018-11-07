@@ -1,4 +1,5 @@
 /* eslint-disable */
+const log = require('electron-log');
 const Store = require('electron-store');
 const store = new Store();
 const _ = require('lodash');
@@ -8,7 +9,7 @@ const saveCurrentState = async (state) => {
     Object.entries(state).forEach(([key, value]) => store.set(key, value));
     return true;
   } catch (err) {
-    console.error(err);
+    log.error(err);
     return false;
   }
 };
@@ -23,7 +24,7 @@ const getSavedState = async () => {
     }
     return state;
   } catch (err) {
-    console.error(err);
+    log.error(err);
     return { error: 'Problem getting saved state from disk' };
   }
 };
@@ -34,7 +35,7 @@ const wipeState = async () => {
       store.delete(item[0]);
     }
   } catch (err) {
-    console.error(err);
+    log.error(err);
     return { error: 'Problem getting saved state from disk' };
   }
 };
@@ -50,7 +51,7 @@ const isConnected = async () => {
     }
     return false;
   } catch (err) {
-    console.error(err);
+    log.error(err);
   }
   return false;
 };

@@ -34,6 +34,7 @@ const _ = require('lodash');
 const path = require('path');
 const prettyMs = require('pretty-ms');
 const prettyBytes = require('pretty-bytes');
+const log = require('electron-log');
 
 export default {
   name: 'download',
@@ -88,20 +89,20 @@ export default {
     });
     this.$electron.ipcRenderer.on('file-downloaded', (e, file) => {
       file.downloadEndTime = Date.now();
-      console.log(`File Name: ${file.name}`);
-      console.log(`Start Time: ${file.downloadStartTime}`);
-      console.log(`End Time: ${file.downloadStartTime}`);
+      log.info(`File Name: ${file.name}`);
+      log.info(`Start Time: ${file.downloadStartTime}`);
+      log.info(`End Time: ${file.downloadStartTime}`);
       const downloadTime = (file.downloadEndTime - file.downloadStartTime);
-      console.log(`Difference: ${prettyMs(downloadTime)}`);
-      console.log(`File Size: ${prettyBytes(file.size)}`);
+      log.info(`Difference: ${prettyMs(downloadTime)}`);
+      log.info(`File Size: ${prettyBytes(file.size)}`);
       const projectedDownloadSpeed = (file.size / downloadTime) -
         ((file.size / downloadTime) * 0.5);
-      console.log(`Estimated Download Speed Bytes/Second: ${prettyBytes(projectedDownloadSpeed * 1000)}`);
+      log.info(`Estimated Download Speed Bytes/Second: ${prettyBytes(projectedDownloadSpeed * 1000)}`);
       this.filesDownloaded.push(file);
       this.$store.dispatch('downloadedFile', file);
       this.bytesDownloaded += file.size;
       this.numFilesDownloaded += 1;
-      console.log(`sending ${projectedDownloadSpeed} to downloadFile`);
+      log.info(`sending ${projectedDownloadSpeed} to downloadFile`);
       this.downloadFile(projectedDownloadSpeed);
     });
     this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
@@ -193,10 +194,10 @@ export default {
             json: true,
             encoding: null,
           };
-          console.log(`File size: ${prettyBytes(file.size)}`);
-          console.log(`MS expected to take: ${prettyMs(file.projectedDownloadTime)}`);
-          console.log(projectedDownloadSpeed);
-          console.log(`Download Speed: ${prettyBytes(projectedDownloadSpeed * 1000)}/s`);
+          log.info(`File size: ${prettyBytes(file.size)}`);
+          log.info(`MS expected to take: ${prettyMs(file.projectedDownloadTime)}`);
+          log.info(projectedDownloadSpeed);
+          log.info(`Download Speed: ${prettyBytes(projectedDownloadSpeed * 1000)}/s`);
           this.$electron.ipcRenderer.send('download-file', { options, file });
         } else {
           this.filesFailedToDownload.push(this.filesToBeDownloaded[currentIndex]);

@@ -14,6 +14,13 @@
     >
       {{ failureMessage }}
     </v-alert>
+    <v-alert
+      :value="displayInfo"
+      type="info"
+      dismissible
+    >
+      {{ infoMessage }}
+    </v-alert>
     <v-layout mt-5 justify-center align-center row>
       <v-flex xs12 sm8>
         <v-layout row>
@@ -63,6 +70,8 @@
 </template>
 
 <script>
+const log = require('electron-log');
+
 export default {
   name: 'Preferences',
   data() {
@@ -71,8 +80,10 @@ export default {
       folder: 'Choose Folder',
       displayFailure: false,
       displaySuccess: false,
+      displayInfo: false,
       successMessage: '',
       failureMessage: '',
+      infoMessage: 'Update is available! Restart to Install',
     };
   },
   methods: {
@@ -86,12 +97,11 @@ export default {
       if (this.$refs.localSyncFrequency.validate(true)) {
         this.$store.dispatch('updateSyncFrequency', { newFrequency: this.localSyncFrequency })
           .then((response) => {
-            console.log(response);
             this.displaySuccess = true;
             this.successMessage = response;
           })
           .catch((err) => {
-            console.error(err);
+            log.error(err);
             this.displayFailure = true;
             this.failureMessage = JSON.stringify(err);
           });

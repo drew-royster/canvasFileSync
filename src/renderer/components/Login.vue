@@ -3,6 +3,7 @@
 </template>
 
 <script>
+  const log = require('electron-log');
   const request = require('request-promise');
   export default {
     name: 'login',
@@ -55,10 +56,10 @@
               }
             })
             .catch((err) => {
-              console.error(err);
+              log.error(err);
             });
         } else {
-          console.log('1 second has passed. already sent request');
+          log.info('1 second has passed. already sent request');
         }
       }, 1000);
     },
