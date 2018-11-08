@@ -22,8 +22,10 @@
               <v-form ref="form" v-model="valid" lazy-validation>
                 <v-layout row>
                   <v-autocomplete
+                    id="school-search"
                     v-if="!manual"
                     ref="schoolSearch"
+                    @keyup.enter="connect"
                     v-model="school"
                     :items="schools"
                     :loading="isLoading"
@@ -33,7 +35,7 @@
                     hide-selected
                     item-text="name"
                     label="School"
-                    placeholder="Search for schools or enter domain"
+                    placeholder="Search for schools"
                     prepend-icon="school"
                     return-object
                     required

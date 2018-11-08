@@ -28,7 +28,7 @@ if (process.env.NODE_ENV !== 'development') {
   global.__static = path.join(__dirname, '/static').replace(/\\/g, '\\\\') // eslint-disable-line
 }
 
-let mainWindow;
+let mainWindow = null;
 let tray;
 let syncing = false;
 const winURL = process.env.NODE_ENV === 'development'
@@ -56,7 +56,9 @@ const notConnectedMenu = [
     label: 'Connect',
     enabled: true,
     click() {
-      createWindow();
+      if (mainWindow === null) {
+        createWindow();
+      }
     },
   },
   {
@@ -78,7 +80,9 @@ const syncingMenu = [
     label: 'Preferences',
     enabled: true,
     click() {
-      createWindow();
+      if (mainWindow === null) {
+        createWindow();
+      }
     },
   },
   {
@@ -107,7 +111,9 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       label: 'Preferences',
       enabled: true,
       click() {
-        createWindow();
+        if (mainWindow === null) {
+          createWindow();
+        }
       },
     },
     {
@@ -193,7 +199,7 @@ ipcMain.on('download-file', async (e, args) => {
   try {
     return downloadFile(e, args, 'file-downloaded');
   } catch (err) {
-    console.error(pe.render(err));
+    log.error(pe.render(err));
     return e.sender.send('file-download-failed', args.file);
   }
 });
@@ -215,8 +221,8 @@ const downloadFile = async (e, args, ipcReceiver) => {
         await fs.writeFileSync(file.fullPath, buffer);
         resolve('Download Finished');
       } catch (err) {
-        console.error(pe.render(err));
-        reject('error downloading file');
+        log.error(pe.render(err));
+        reject(err);
       }
     });
     return Promise.race([timeout, downloadPromise])
@@ -227,12 +233,12 @@ const downloadFile = async (e, args, ipcReceiver) => {
         return e.sender.send('file-download-failed', file);
       })
       .catch((err) => {
-        console.error(pe.render(err));
+        log.error(pe.render(err));
         return e.sender.send('file-download-failed', file);
       });
   } catch (err) {
-    console.error('general exception');
-    console.error(pe.render(err));
+    log.error('general exception');
+    log.error(pe.render(err));
     return e.sender.send('file-download-failed', file);
   }
 };
@@ -251,7 +257,7 @@ const syncDownloadFiles = async (files, rootFolder) => {
       await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
       return file;
     } catch (err) {
-      console.error(err);
+      log.error(err);
       return file;
     }
   });
@@ -351,7 +357,6 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
   } catch (err) {
     log.error('Error getting new files');
-    // console.log(courses);
     log.error(pe.render(err));
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
   }
