@@ -65,7 +65,7 @@
                 </v-layout>
                 <v-layout row>
                   <v-flex>
-                    <v-switch label="Manual Mode" v-model="manual"></v-switch>
+                    <v-switch label="Hacker Mode" v-model="manual"></v-switch>
                   </v-flex>
                 </v-layout>
                 <v-layout justify-center>

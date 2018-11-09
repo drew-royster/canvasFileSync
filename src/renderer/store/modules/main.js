@@ -69,7 +69,7 @@ const actions = {
   connect({ commit }) {
     return new Promise((resolve, reject) => {
       try {
-        canvasIntegration.getActiveCanvasCourses(
+        canvasIntegration.getCourses(
           state.authToken, state.rootURL).then((response) => {
           let coursesAdded = 0;
           if (response.success) {
@@ -78,12 +78,18 @@ const actions = {
               resolve();
             } else {
               response.response.forEach(async (courseItem) => {
-                if (courseItem.sync) {
+                if (courseItem.modules_view) {
+                  const modules = await canvasIntegration.getModules(state.authToken,
+                    state.rootURL, courseItem);
+                  courseItem.modules = modules;
+                  const filesRaw = await canvasIntegration.getModulesFiles(state.authToken,
+                    modules, courseItem);
+                  courseItem.files = _.flatten(filesRaw);
+                  commit('ADD_COURSE', courseItem);
+                } else {
                   const course = await canvasIntegration.getCourseFilesAndFolders(
                     state.authToken, courseItem);
                   commit('ADD_COURSE', course);
-                } else {
-                  commit('ADD_COURSE', courseItem);
                 }
                 coursesAdded += 1;
                 if (coursesAdded === response.response.length) {

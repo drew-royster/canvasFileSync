@@ -113,6 +113,7 @@ export default {
     });
     const onlySyncable = _.filter(this.courses, (course) => { return course.sync; });
     _.forEach(onlySyncable, (course) => {
+      // this applies for both modules view and the other views
       const courseSum = _.sumBy(course.files, (file) => { return file.size; });
       this.bytesToBeDownloaded += courseSum;
       const filesArray = _.map(course.files, (file) => {
@@ -126,9 +127,19 @@ export default {
           retries: 3,
         };
       });
-      const foldersArray = _.map(course.folders, (folder) => {
-        return path.join(this.rootFolder, folder.folderPath);
-      });
+
+      let foldersArray;
+      // modules view should be handled differently
+      if (course.modules_view) {
+        foldersArray = _.map(course.modules, (courseModule) => {
+          return path.join(this.rootFolder, courseModule.modulePath);
+        });
+      } else { // non-modules view
+        foldersArray = _.map(course.folders, (folder) => {
+          return path.join(this.rootFolder, folder.folderPath);
+        });
+      }
+      // adding course as folder
       foldersArray.push(path.join(this.rootFolder, course.name));
       this.foldersToBeCreated = this.foldersToBeCreated.concat(foldersArray);
       this.filesToBeDownloaded = this.filesToBeDownloaded.concat(filesArray);
