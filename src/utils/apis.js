@@ -99,6 +99,17 @@ const listFilesByUpdatedAt = async (authToken, filesURL) => {
   return request.get(options);
 };
 
+const listCourseTabs = async (authToken, rootURL, courseID) => {
+  const options = {
+    method: 'GET',
+    uri: `https://${rootURL}/api/v1/courses/${courseID}/tabs`,
+    headers: { Authorization: `Bearer ${authToken}` },
+    json: true,
+    encoding: null,
+  };
+  return request.get(options);
+};
+
 export default {
   listActiveCanvasCourses,
   listModules,
@@ -108,4 +119,5 @@ export default {
   getCourseRootFolder,
   listFoldersByUpdatedAt,
   listFilesByUpdatedAt,
+  listCourseTabs,
 };

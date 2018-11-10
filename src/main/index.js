@@ -328,30 +328,32 @@ const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
   try {
     /* eslint-disable no-await-in-loop */
     for (let i = 0; i < coursesWithNewFilesAndFolders.length; i += 1) {
-      const courseHasNewFile = await canvasIntegration.hasNewFile(authToken,
-        rootURL,
-        coursesWithNewFilesAndFolders[i].id,
-        lastSynced);
-      if (courseHasNewFile) {
-        log.info('has new file(s)');
-        const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken,
-          coursesWithNewFilesAndFolders[i], lastSynced);
-        log.info(`num new or updated course files: ${courseFiles.length}`);
-        for (let j = 0; j < courseFiles.length; j += 1) {
-          const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
-            { filePath: courseFiles[j].filePath });
-          const fileWithID = JSON.parse(JSON.stringify(courseFiles[j]));
-          fileWithID.courseID = coursesWithNewFilesAndFolders[i].id;
-          newOrUpdatedFiles.push(fileWithID);
-          if (fileIndex >= 0) {
-            log.info('updating file');
-            coursesWithNewFilesAndFolders[i].files[fileIndex] = courseFiles[j];
-          } else {
-            coursesWithNewFilesAndFolders[i].files.push(courseFiles[j]);
+      if (coursesWithNewFilesAndFolders[i].hasFilesTab) {
+        const courseHasNewFile = await canvasIntegration.hasNewFile(authToken,
+          rootURL,
+          coursesWithNewFilesAndFolders[i].id,
+          lastSynced);
+        if (courseHasNewFile) {
+          log.info('has new file(s)');
+          const courseFiles = await canvasIntegration.getAllNewOrUpdatedFiles(authToken,
+            coursesWithNewFilesAndFolders[i], lastSynced);
+          log.info(`num new or updated course files: ${courseFiles.length}`);
+          for (let j = 0; j < courseFiles.length; j += 1) {
+            const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[i].files,
+              { filePath: courseFiles[j].filePath });
+            const fileWithID = JSON.parse(JSON.stringify(courseFiles[j]));
+            fileWithID.courseID = coursesWithNewFilesAndFolders[i].id;
+            newOrUpdatedFiles.push(fileWithID);
+            if (fileIndex >= 0) {
+              log.info('updating file');
+              coursesWithNewFilesAndFolders[i].files[fileIndex] = courseFiles[j];
+            } else {
+              coursesWithNewFilesAndFolders[i].files.push(courseFiles[j]);
+            }
           }
+        } else {
+          log.info('no new files');
         }
-      } else {
-        log.info('no new files');
       }
     }
     return { coursesWithNewFilesAndFolders, newOrUpdatedFiles };
@@ -368,18 +370,20 @@ const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
   try {
     /* eslint-disable no-await-in-loop */
     for (let i = 0; i < coursesWithNewFolders.length; i += 1) {
-      const courseNewFolders = await canvasIntegration.getNewFolders(authToken,
-        rootURL, coursesWithNewFolders[i], lastSynced);
-      for (let j = 0; j < courseNewFolders.length; j += 1) {
-        const folderIndex = _.findIndex(coursesWithNewFolders[i].folders,
-          { folderPath: courseNewFolders[j].folderPath });
-        if (folderIndex >= 0) {
-          log.info('updating folder');
-          coursesWithNewFolders[i].folders[folderIndex] = courseNewFolders[j];
-        } else {
-          log.info('brand new folder');
-          coursesWithNewFolders[i].folders.push(courseNewFolders[j]);
-          newFolders.push(courseNewFolders[j]);
+      if (coursesWithNewFolders[i].hasFilesTab) {
+        const courseNewFolders = await canvasIntegration.getNewFolders(authToken,
+          rootURL, coursesWithNewFolders[i], lastSynced);
+        for (let j = 0; j < courseNewFolders.length; j += 1) {
+          const folderIndex = _.findIndex(coursesWithNewFolders[i].folders,
+            { folderPath: courseNewFolders[j].folderPath });
+          if (folderIndex >= 0) {
+            log.info('updating folder');
+            coursesWithNewFolders[i].folders[folderIndex] = courseNewFolders[j];
+          } else {
+            log.info('brand new folder');
+            coursesWithNewFolders[i].folders.push(courseNewFolders[j]);
+            newFolders.push(courseNewFolders[j]);
+          }
         }
       }
     }

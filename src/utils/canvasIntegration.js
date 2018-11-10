@@ -7,6 +7,14 @@ const log = require('electron-log');
 const filenamify = require('filenamify');
 import apis from './apis';
 
+const hasItem = async (collection, item) => {
+  const foundItem = _.find(collection, item);
+  if (foundItem) {
+    return true;
+  }
+  return false;
+};
+
 const getCourses = async (
   authToken,
   rootURL,
@@ -14,25 +22,21 @@ const getCourses = async (
   try {
     const activeCoursesResponse = await apis.listActiveCanvasCourses(authToken, rootURL);
     const activeCourses = await Promise.all(_.map(activeCoursesResponse, async (activeCourse) => {
-      if (activeCourse.default_view === 'modules') {
+      const tabs = await apis.listCourseTabs(authToken, rootURL, activeCourse.id);
+      const hasModulesTab = await hasItem(tabs, { id: 'modules'});
+      const hasFilesTab = await hasItem(tabs, { id: 'files'});
         return { id: activeCourse.id,
-          modules_view: true,
+          hasModulesTab,
+          hasFilesTab,
           sync: true,
           name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-'}),
           modules: [],
-          files: [],
-        };
-      } else {
-        const { files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id);
-        return { id: activeCourse.id,
-          modules_view: false,
-          sync: true,
-          name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-'}),
           folder: true,
-          files_url,
-          folders_url,
+          files: [],
+          folders: [],
+          files_url: null,
+          folders_url: null,
         };
-      }
     }));
     return { success: true, message: 'success', response: activeCourses };
   } catch (error) {
@@ -248,7 +252,7 @@ const getCourseFilesAndFolders = async (authToken, course) => {
   files = files.concat(filesResponse);
   course.files = files;
   course.folders = folders;
-  return course;
+  return { files, folders };
 };
 
 const getNewFolders = async (authToken, rootURL, course, lastSynced) => {

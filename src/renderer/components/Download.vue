@@ -128,17 +128,17 @@ export default {
         };
       });
 
-      let foldersArray;
-      // modules view should be handled differently
-      if (course.modules_view) {
-        foldersArray = _.map(course.modules, (courseModule) => {
+      let foldersArray = [];
+      // add modules
+      if (course.hasModulesTab) {
+        foldersArray = foldersArray.concat(_.map(course.modules, (courseModule) => {
           return path.join(this.rootFolder, courseModule.modulePath);
-        });
-      } else { // non-modules view
-        foldersArray = _.map(course.folders, (folder) => {
-          return path.join(this.rootFolder, folder.folderPath);
-        });
+        }));
       }
+      // non-modules view
+      foldersArray = foldersArray.concat(_.map(course.folders, (folder) => {
+        return path.join(this.rootFolder, folder.folderPath);
+      }));
       // adding course as folder
       foldersArray.push(path.join(this.rootFolder, course.name));
       this.foldersToBeCreated = this.foldersToBeCreated.concat(foldersArray);

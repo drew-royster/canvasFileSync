@@ -5,6 +5,7 @@ const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
 const _ = require('lodash');
+const log = require('electron-log');
 
 const state = {
   authToken: null,
@@ -77,20 +78,33 @@ const actions = {
               commit('ADDED_ALL_COURSES');
               resolve();
             } else {
-              response.response.forEach(async (courseItem) => {
-                if (courseItem.modules_view) {
+              response.response.forEach(async (course) => {
+                log.info(course);
+                let courseFiles = [];
+                let courseFolders = [];
+                // get modules and module files if that tab is available
+                if (course.hasModulesTab) {
                   const modules = await canvasIntegration.getModules(state.authToken,
-                    state.rootURL, courseItem);
-                  courseItem.modules = modules;
+                    state.rootURL, course);
+                  course.modules = modules;
                   const filesRaw = await canvasIntegration.getModulesFiles(state.authToken,
-                    modules, courseItem);
-                  courseItem.files = _.flatten(filesRaw);
-                  commit('ADD_COURSE', courseItem);
-                } else {
-                  const course = await canvasIntegration.getCourseFilesAndFolders(
-                    state.authToken, courseItem);
-                  commit('ADD_COURSE', course);
+                    modules, course);
+                  courseFiles = courseFiles.concat(_.flatten(filesRaw));
                 }
+                // get files and folders if files tab is available
+                if (course.hasFilesTab) {
+                  const { files_url, folders_url } = await canvasIntegration // eslint-disable-line
+                    .getCourseFilesANDFoldersURLS(state.authToken, state.rootURL, course.id);
+                  course.files_url = files_url; // eslint-disable-line
+                  course.folders_url = folders_url; // eslint-disable-line
+                  const { files, folders } = await canvasIntegration.getCourseFilesAndFolders(
+                    state.authToken, course);
+                  courseFiles = courseFiles.concat(files);
+                  courseFolders = courseFolders.concat(folders);
+                }
+                course.files = courseFiles;
+                course.folders = courseFolders;
+                commit('ADD_COURSE', course);
                 coursesAdded += 1;
                 if (coursesAdded === response.response.length) {
                   commit('ADDED_ALL_COURSES');
