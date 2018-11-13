@@ -96,7 +96,9 @@ const getModulesFiles = async (authToken, modules, course) => {
 };
 
 const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) => {
-  let files = [];
+  let updatedModulesFiles = [];
+  const courseWithModulesFiles = JSON.parse(JSON.stringify(course));
+
   await Promise.all(_.map(modules, async (courseModule) => {
     // get all module items
     const moduleItems = await apis.listModuleItems(authToken, courseModule);
@@ -109,7 +111,7 @@ const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) =
     // parse file information into something usable
     await Promise.all(_.map(filesRaw, async (fileRaw) => {
       if (new Date(fileRaw.updated_at) > new Date(lastUpdated)) {
-        log.info('updated file');
+        // log.info('updated file');
         const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
         const cleanName = filenamify(courseModule.name, { replacement: '-'});
         const filename = filenamify(filenameDecoded, { replacement: '-'});
@@ -123,14 +125,23 @@ const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) =
           sync: true,
           id: fileRaw.id,
           filePath,
+          courseID: courseWithModulesFiles.id,
         };
-        files.push(file);
+        updatedModulesFiles.push(file);
+        const fileIndex = _.findIndex(courseWithModulesFiles.files,
+          { filePath });
+        if (fileIndex >= 0) {
+          log.info('updating file');
+          courseWithModulesFiles.files[fileIndex] = file;
+        } else {
+          courseWithModulesFiles.files.push(file);
+        }
       } else {
-        log.info('not updated file');
+        // log.info('not updated file');
       }
     }));
   }));
-  return files;
+  return { updatedModulesFiles, courseWithModulesFiles };
 };
 
 const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
