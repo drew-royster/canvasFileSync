@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
@@ -297,30 +298,80 @@ const updateMenu = (template) => {
 };
 
 const sync = async (lastSynced) => {
-  syncing = true;
-  updateMenu(syncingMenu);
-  const courses = await dataStorage.getSyncableCourses();
-  const authToken = await dataStorage.getAuthToken();
-  const rootURL = await dataStorage.getRootURL();
-  const rootFolder = await dataStorage.getRootFolder();
-  const { coursesWithNewFolders, newFolders } = await getNewFolders(authToken,
-    rootURL, courses, lastSynced);
-  const foldersToBeCreated = _.flatten(newFolders);
-  await createNewFolders(rootFolder, foldersToBeCreated);
-  const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
-    rootURL, coursesWithNewFolders, lastSynced);
-  const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
-  await Promise.map(downloadedFiles, async (file) => {
-    const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
-    const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
-      { filePath: file.filePath });
-    coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
-  });
-  await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
-  await dataStorage.updateLastSynced();
-  syncing = false;
-  updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+  try {
+    syncing = true;
+    updateMenu(syncingMenu);
+    const courses = await dataStorage.getSyncableCourses();
+    const authToken = await dataStorage.getAuthToken();
+    const rootURL = await dataStorage.getRootURL();
+    const rootFolder = await dataStorage.getRootFolder();
+    const updatedCourses = await Promise.all(_.map(courses, async (course) => {
+      let allNewFolders = [];
+      let allNewFiles = [];
+      // getting any new modules - adding them to courses object
+      const { courseWithNewModules, newModules, hasUpdates } = await getNewModules(authToken,
+        rootURL, course);
+      log.info(`Course: ${course.name} has updates: ${hasUpdates}`);
+      if (hasUpdates) {
+        allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
+          return newModule.modulePath;
+        }));
+        const updatedModulesFiles = await canvasIntegration.getUpdatedModulesFiles(authToken,
+          newModules, courseWithNewModules, lastSynced);
+        log.info('updatedModulesFiles');
+        log.info(updatedModulesFiles);
+      }
+    }));
+    syncing = false;
+    updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+  } catch(err) {
+    log.error(pe.render(err));
+  }
 };
+
+// const sync = async (lastSynced) => {
+//   try {
+//     syncing = true;
+//     updateMenu(syncingMenu);
+//     const courses = await dataStorage.getSyncableCourses();
+//     const authToken = await dataStorage.getAuthToken();
+//     const rootURL = await dataStorage.getRootURL();
+//     const rootFolder = await dataStorage.getRootFolder();
+//     let allNewFolders = [];
+//     // adding newModules to allNewFolders. This will include 
+    // allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
+    //   return newModule.modulePath;
+    // }));
+//     // getting new folders
+//     const { coursesWithNewFolders, newFolders } = await getNewFolders(authToken,
+//       rootURL, coursesWithNewModules, lastSynced);
+//     // adding new folders to the folders we already need to create based off of modules
+//     allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
+//       return newFolder.folderPath;
+//     })));
+//     // create folders from both the modules view and from the files view
+//     await createNewFolders(rootFolder, allNewFolders);
+
+//     // get new or updated files from files view
+//     // const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
+//     //   rootURL, coursesWithNewFolders, lastSynced);
+
+    
+//     // const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
+//     // await Promise.map(downloadedFiles, async (file) => {
+//     //   const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
+//     //   const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
+//     //     { filePath: file.filePath });
+//     //   coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
+//     // });
+//     // await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
+//     // await dataStorage.updateLastSynced();
+    // syncing = false;
+    // updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+//   } catch(err) {
+//     log.error(pe.render(err));
+//   }
+// };
 
 const getNewFiles = async (authToken, rootURL, courses, lastSynced) => {
   const coursesWithNewFilesAndFolders = JSON.parse(JSON.stringify(courses));
@@ -395,16 +446,44 @@ const getNewFolders = async (authToken, rootURL, courses, lastSynced) => {
   }
 };
 
+const getNewModules = async (authToken, rootURL, course) => {
+  let newModules = [];
+  let hasUpdates = false;
+  const courseWithNewModules = JSON.parse(JSON.stringify(course));
+  try {
+    if (courseWithNewModules.hasModulesTab) {
+      const modules = await canvasIntegration.getModules(authToken,
+        rootURL, courseWithNewModules);
+      if (modules.length > courseWithNewModules.modules.length) {
+        courseWithNewModules.modules = modules;
+        newModules = newModules.concat(modules);
+        hasUpdates = true;
+      } else {
+        log.info('no new modules. checking for new module items');
+        for (let j = 0; j < modules.length; j++) {
+          if (modules[j].items_count !== courseWithNewModules.modules[j].items_count) {
+            hasUpdates = true;
+          }
+        }
+      }
+    }
+    return { courseWithNewModules, newModules, hasUpdates };
+  } catch (err) {
+    log.error('Error getting new modules');
+    log.error(pe.render(err));
+    return { courseWithNewModules, newModules, hasUpdates };
+  }
+};
+
 const createNewFolders = async (rootFolder, folders) => {
   return Promise.all(
     _.forEach(folders, async (folder) => {
       try {
-        await fs.accessSync(path.join(rootFolder, folder.folderPath), fs.constants.F_OK);
+        await fs.accessSync(path.join(rootFolder, folder), fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
-        log.error(pe.render(err));
         log.error('Folder does not exist');
-        return fs.mkdirSync(path.join(rootFolder, folder.folderPath));
+        return fs.mkdirSync(path.join(rootFolder, folder));
       }
     }));
 };

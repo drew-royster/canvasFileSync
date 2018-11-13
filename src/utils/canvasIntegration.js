@@ -95,6 +95,44 @@ const getModulesFiles = async (authToken, modules, course) => {
   }));
 };
 
+const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) => {
+  let files = [];
+  await Promise.all(_.map(modules, async (courseModule) => {
+    // get all module items
+    const moduleItems = await apis.listModuleItems(authToken, courseModule);
+    // filter only file items, we don't care about the rest
+    const filesModules = await Promise.all(_.filter(moduleItems, moduleItem => moduleItem.type === 'File'));
+    // get the file information for each module file
+    const filesRaw = await Promise.all(_.map(filesModules, async (fileModule) => {
+      return apis.getModuleFileDetails(authToken, fileModule.url);
+    }));
+    // parse file information into something usable
+    await Promise.all(_.map(filesRaw, async (fileRaw) => {
+      if (new Date(fileRaw.updated_at) > new Date(lastUpdated)) {
+        log.info('updated file');
+        const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
+        const cleanName = filenamify(courseModule.name, { replacement: '-'});
+        const filename = filenamify(filenameDecoded, { replacement: '-'});
+        const filePath = path.join(course.name, cleanName, filename);
+        const file = {
+          name: filename,
+          url: fileRaw.url,
+          folder: false,
+          lastUpdated: null,
+          size: fileRaw.size,
+          sync: true,
+          id: fileRaw.id,
+          filePath,
+        };
+        files.push(file);
+      } else {
+        log.info('not updated file');
+      }
+    }));
+  }));
+  return files;
+};
+
 const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
@@ -325,4 +363,5 @@ export default {
   getAllNewOrUpdatedFiles,
   getModules,
   getModulesFiles,
+  getUpdatedModulesFiles,
 };
