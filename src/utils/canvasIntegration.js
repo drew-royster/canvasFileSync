@@ -95,7 +95,7 @@ const getModulesFiles = async (authToken, modules, course) => {
   }));
 };
 
-const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) => {
+const getUpdatedModulesFiles = async (authToken, modules, course) => {
   let updatedModulesFiles = [];
   const courseWithModulesFiles = JSON.parse(JSON.stringify(course));
 
@@ -110,34 +110,30 @@ const getUpdatedModulesFiles = async (authToken, modules, course, lastUpdated) =
     }));
     // parse file information into something usable
     await Promise.all(_.map(filesRaw, async (fileRaw) => {
-      if (new Date(fileRaw.updated_at) > new Date(lastUpdated)) {
-        // log.info('updated file');
-        const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-        const cleanName = filenamify(courseModule.name, { replacement: '-'});
-        const filename = filenamify(filenameDecoded, { replacement: '-'});
-        const filePath = path.join(course.name, cleanName, filename);
-        const file = {
-          name: filename,
-          url: fileRaw.url,
-          folder: false,
-          lastUpdated: null,
-          size: fileRaw.size,
-          sync: true,
-          id: fileRaw.id,
-          filePath,
-          courseID: courseWithModulesFiles.id,
-        };
-        updatedModulesFiles.push(file);
-        const fileIndex = _.findIndex(courseWithModulesFiles.files,
-          { filePath });
-        if (fileIndex >= 0) {
-          log.info('updating file');
-          courseWithModulesFiles.files[fileIndex] = file;
-        } else {
-          courseWithModulesFiles.files.push(file);
-        }
+      // log.info('updated file');
+      const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
+      const cleanName = filenamify(courseModule.name, { replacement: '-'});
+      const filename = filenamify(filenameDecoded, { replacement: '-'});
+      const filePath = path.join(course.name, cleanName, filename);
+      const file = {
+        name: filename,
+        url: fileRaw.url,
+        folder: false,
+        lastUpdated: null,
+        size: fileRaw.size,
+        sync: true,
+        id: fileRaw.id,
+        filePath,
+        courseID: courseWithModulesFiles.id,
+      };
+      updatedModulesFiles.push(file);
+      const fileIndex = _.findIndex(courseWithModulesFiles.files,
+        { filePath });
+      if (fileIndex >= 0) {
+        log.info('updating file');
+        courseWithModulesFiles.files[fileIndex] = file;
       } else {
-        // log.info('not updated file');
+        courseWithModulesFiles.files.push(file);
       }
     }));
   }));
@@ -353,7 +349,6 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
       log.info('new file');
       return true;
     } else {
-      log.info('no new files');
       return false;
     }
   } catch (err) {

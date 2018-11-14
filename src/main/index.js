@@ -306,11 +306,13 @@ const sync = async (lastSynced) => {
     const rootURL = await dataStorage.getRootURL();
     const rootFolder = await dataStorage.getRootFolder();
     const updatedCourses = await Promise.all(_.map(courses, async (course) => {
+      let currentCourse = course;
       let allNewFolders = [];
       let allNewFiles = [];
       // getting any new modules - adding them to courses object
       const { courseWithNewModules, newModules, hasUpdates } = await getNewModules(authToken,
         rootURL, course);
+      log.info(newModules);
       // log.info(`Course: ${course.name} has updates: ${hasUpdates}`);
       if (hasUpdates) {
         allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
@@ -319,10 +321,12 @@ const sync = async (lastSynced) => {
         const { updatedModulesFiles, courseWithModulesFiles } = await canvasIntegration.getUpdatedModulesFiles(authToken,
           newModules, courseWithNewModules, lastSynced);
         allNewFiles = allNewFiles.concat(_.flatten(updatedModulesFiles));
+        currentCourse = courseWithModulesFiles;
       }
       // getting new folders
       const { courseWithNewFolders, newFolders } = await getNewFolders(authToken,
-        rootURL, courseWithModulesFiles, lastSynced);
+        rootURL, currentCourse, lastSynced);
+      currentCourse = courseWithNewFolders;
       allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
         return newFolder.folderPath;
       })));
@@ -332,13 +336,20 @@ const sync = async (lastSynced) => {
       if (course.hasFilesTab) {
         // get new or updated files from files view
         const { courseWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
-          rootURL, courseWithNewFolders, lastSynced);
+          rootURL, currentCourse, lastSynced);
         allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
+        currentCourse = courseWithNewFilesAndFolders;
       }
-      log.info(allNewFolders);
-      log.info(allNewFiles);
+      const downloadedFiles = await syncDownloadFiles(allNewFiles, rootFolder);
+      await Promise.all(_.forEach(downloadedFiles, async (file) => {
+        const fileIndex = _.findIndex(currentCourse.files,
+          { filePath: file.filePath });
+        currentCourse.files[fileIndex].lastUpdated = Date.now();
+      }));
+      return currentCourse;
     }));
-
+    await dataStorage.updateCourses(updatedCourses);
+    await dataStorage.updateLastSynced();
     syncing = false;
     updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
   } catch(err) {
@@ -374,15 +385,15 @@ const sync = async (lastSynced) => {
     //   rootURL, coursesWithNewFolders, lastSynced);
 
     
-//     // const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
-//     // await Promise.map(downloadedFiles, async (file) => {
-//     //   const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
-//     //   const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
-//     //     { filePath: file.filePath });
-//     //   coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
-//     // });
-//     // await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
-//     // await dataStorage.updateLastSynced();
+    // const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
+    // await Promise.map(downloadedFiles, async (file) => {
+    //   const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
+    //   const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
+    //     { filePath: file.filePath });
+    //   coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
+    // });
+    // await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
+    // await dataStorage.updateLastSynced();
     // syncing = false;
     // updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
 //   } catch(err) {
@@ -418,7 +429,7 @@ const getNewFiles = async (authToken, rootURL, course, lastSynced) => {
           }
         }
       } else {
-        log.info('no new files');
+        // log.info('no new files');
       }
     }
     return { courseWithNewFilesAndFolders, newOrUpdatedFiles };
@@ -472,7 +483,11 @@ const getNewModules = async (authToken, rootURL, course) => {
       } else {
         log.info('no new modules. checking for new module items');
         for (let j = 0; j < modules.length; j++) {
+          // log.info(`Remote Module: ${modules[j].name}, Length: ${modules[j].items_count}`);
+          // log.info(`Local Module: ${courseWithNewModules.modules[j].name}, Length: ${courseWithNewModules.modules[j].items_count}`);
           if (modules[j].items_count !== courseWithNewModules.modules[j].items_count) {
+            courseWithNewModules.modules[j] = modules[j];
+            newModules.push(modules[j]);
             hasUpdates = true;
           }
         }
