@@ -81,6 +81,7 @@ export default {
     },
   },
   mounted() {
+    this.$electron.ipcRenderer.send('syncing');
     this.$electron.ipcRenderer.on('folder-created', () => {
       this.numFoldersCreated += 1;
       if (this.numFoldersCreated < this.numFoldersToBeCreated) {

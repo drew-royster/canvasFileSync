@@ -1,4 +1,4 @@
-import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
+import { app, Menu, dialog, ipcMain, BrowserWindow, Tray, Notification } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
 import canvasIntegration from '../utils/canvasIntegration';
@@ -38,6 +38,7 @@ const winURL = process.env.NODE_ENV === 'development'
   : `file://${__dirname}/index.html`;
 
 const createWindow = () => {
+  if (app.dock) app.dock.show();
   mainWindow = new BrowserWindow({
     height: 600,
     width: 1000,
@@ -165,6 +166,15 @@ app.on('ready', async () => {
   });
 
   if (await dataStorage.isConnected()) {
+    if (await dataStorage.hasCheckedModules()) {
+      log.info('we already have modules');
+    } else {
+      const hello = new Notification({ title: 'Now supporting Canvas Modules', body: 'Click to get your Modules if you have any' });
+      hello.show();
+      hello.on('click', () => {
+        createWindow();
+      });
+    }
     if (app.dock) app.dock.hide();
     updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
   } else {
@@ -177,7 +187,7 @@ app.on('ready', async () => {
     if (process.env.NODE_ENV === 'production') {
       autoUpdater.checkForUpdates();
     }
-    if (await dataStorage.isConnected()) {
+    if (await dataStorage.isConnected() && !syncing) {
       // multiple by 60000 because syncfreq is in minutes
       delay = 60000 * (await dataStorage.getSyncFrequency());
       sync(await dataStorage.getLastSynced());
@@ -265,6 +275,16 @@ const syncDownloadFiles = async (files, rootFolder) => {
     }
   });
 };
+
+ipcMain.on('syncing', async () => {
+  syncing = true;
+  updateMenu(syncingMenu);
+});
+
+ipcMain.on('syncing-done', async () => {
+  syncing = false;
+  updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+});
 
 ipcMain.on('completed-initial-sync', async () => {
   updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));

@@ -1,3 +1,4 @@
+import { ipcRenderer } from 'electron'; // eslint-disable-line
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
 const appVersion = require('../../../../package').version;
@@ -46,7 +47,12 @@ const mutations = {
     state.syncFrequency = payload;
   },
   ADD_COURSE(state, payload) {
-    state.courses.push(payload);
+    const index = _.findIndex(state.courses, { id: payload.id });
+    if (index >= 0) {
+      state.courses[index] = payload;
+    } else {
+      state.courses.push(payload);
+    }
   },
   SET_COURSE_MAP(state, payload) {
     const index = _.findIndex(state.courses, { id: payload.id });
@@ -142,8 +148,10 @@ const actions = {
       const savedSuccessfully = dataStorage.saveCurrentState(state);
       if (savedSuccessfully) {
         router.push(`./report/${payload.successes}/${payload.failures}`);
+        ipcRenderer.send('syncing-done');
         resolve(savedSuccessfully);
       } else {
+        ipcRenderer.send('syncing-done');
         reject('Error saving currest state');
       }
     });

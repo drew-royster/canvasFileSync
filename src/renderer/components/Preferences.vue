@@ -49,6 +49,9 @@
                 <v-btn v-else disabled>Save</v-btn>        
               </v-layout>
               <v-layout ma-2 justify-center align-center>
+                <v-btn color="blue" large @click="rebuild">REBUILD! GET EVERYTHING AGAIN</v-btn>                       
+              </v-layout>
+              <v-layout ma-2 justify-center align-center>
                 <v-btn color="red" large @click="disconnect">LOGOUT AND ERASE ALL SETTINGS</v-btn>                       
               </v-layout>
               <v-layout mt-5 justify-center align-center>
@@ -92,6 +95,12 @@ export default {
     },
     disconnect() {
       this.$electron.ipcRenderer.send('disconnect');
+    },
+    rebuild() {
+      this.$store.dispatch('connect').then(() => {
+        console.log('done reconnecting');
+        this.$router.push('/download');
+      });
     },
     updateSyncFrequency() {
       if (this.$refs.localSyncFrequency.validate(true)) {

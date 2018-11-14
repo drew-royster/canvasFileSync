@@ -76,6 +76,23 @@ const getCourses = async () => {
   return store.get('courses');
 };
 
+const hasCheckedModules = async() => {
+  try {
+    const courses = store.get('courses');
+    if (courses.length === 0) {
+      return false;
+    } else {
+      if (courses[0].hasOwnProperty('modules')) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  } catch (err) {
+    log.error(err);
+  }
+};
+
 const getSyncableCourses = async () => {
   return Promise.all(_.filter(store.get('courses'), course => course.sync));
 };
@@ -111,4 +128,5 @@ export default {
   updateLastSynced,
   getSyncFrequency,
   updateSyncFrequency,
+  hasCheckedModules,
 };
