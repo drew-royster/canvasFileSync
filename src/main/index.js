@@ -514,14 +514,4 @@ const createNewFolders = async (rootFolder, folders) => {
     }));
 };
 
-autoUpdater.on('update-downloaded', () => {
-  const myNotification = new Notification('Update Downloaded', {
-    body: 'Click to do the install(it\'s very quick)',
-  });
-  myNotification.onclick = () => {
-    app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) });
-    app.exit(0);
-  };
-});
-
 app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
