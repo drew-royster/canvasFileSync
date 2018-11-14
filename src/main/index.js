@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { app, Menu, dialog, ipcMain, BrowserWindow, Tray } from 'electron' // eslint-disable-line
 import { autoUpdater } from 'electron-updater';
 import * as Sentry from '@sentry/electron';
@@ -21,6 +20,8 @@ autoUpdater.autoDownload = true;
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 
+log.info('started main process');
+
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
@@ -37,14 +38,15 @@ const winURL = process.env.NODE_ENV === 'development'
   : `file://${__dirname}/index.html`;
 
 const createWindow = () => {
-  if (app.dock) app.dock.show();
   mainWindow = new BrowserWindow({
     height: 600,
     width: 1000,
     webPreferences: { webSecurity: false },
   });
 
+  log.info('window created');
   mainWindow.loadURL(winURL);
+  log.info('loaded url');
 
   mainWindow.on('closed', () => {
     if (app.dock) app.dock.hide();
@@ -318,8 +320,8 @@ const sync = async (lastSynced) => {
         allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
           return newModule.modulePath;
         }));
-        const { updatedModulesFiles, courseWithModulesFiles } = await canvasIntegration.getUpdatedModulesFiles(authToken,
-          newModules, courseWithNewModules, lastSynced);
+        const { updatedModulesFiles, courseWithModulesFiles } = await canvasIntegration
+          .getUpdatedModulesFiles(authToken, newModules, courseWithNewModules, lastSynced);
         allNewFiles = allNewFiles.concat(_.flatten(updatedModulesFiles));
         currentCourse = courseWithModulesFiles;
       }
@@ -352,54 +354,10 @@ const sync = async (lastSynced) => {
     await dataStorage.updateLastSynced();
     syncing = false;
     updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
-  } catch(err) {
+  } catch (err) {
     log.error(pe.render(err));
   }
 };
-
-// const sync = async (lastSynced) => {
-//   try {
-//     syncing = true;
-//     updateMenu(syncingMenu);
-//     const courses = await dataStorage.getSyncableCourses();
-//     const authToken = await dataStorage.getAuthToken();
-//     const rootURL = await dataStorage.getRootURL();
-//     const rootFolder = await dataStorage.getRootFolder();
-//     let allNewFolders = [];
-//     // adding newModules to allNewFolders. This will include 
-    // allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
-    //   return newModule.modulePath;
-    // }));
-    // // getting new folders
-    // const { coursesWithNewFolders, newFolders } = await getNewFolders(authToken,
-    //   rootURL, coursesWithNewModules, lastSynced);
-//     // adding new folders to the folders we already need to create based off of modules
-//     allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
-//       return newFolder.folderPath;
-//     })));
-    // // create folders from both the modules view and from the files view
-    // await createNewFolders(rootFolder, allNewFolders);
-
-    // // get new or updated files from files view
-    // const { coursesWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
-    //   rootURL, coursesWithNewFolders, lastSynced);
-
-    
-    // const downloadedFiles = await syncDownloadFiles(newOrUpdatedFiles, rootFolder);
-    // await Promise.map(downloadedFiles, async (file) => {
-    //   const courseIndex = _.findIndex(coursesWithNewFilesAndFolders, { id: file.courseID });
-    //   const fileIndex = _.findIndex(coursesWithNewFilesAndFolders[courseIndex].files,
-    //     { filePath: file.filePath });
-    //   coursesWithNewFilesAndFolders[courseIndex].files[fileIndex].lastUpdated = Date.now();
-    // });
-    // await dataStorage.updateCourses(coursesWithNewFilesAndFolders);
-    // await dataStorage.updateLastSynced();
-    // syncing = false;
-    // updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
-//   } catch(err) {
-//     log.error(pe.render(err));
-//   }
-// };
 
 const getNewFiles = async (authToken, rootURL, course, lastSynced) => {
   const courseWithNewFilesAndFolders = JSON.parse(JSON.stringify(course));
@@ -482,9 +440,7 @@ const getNewModules = async (authToken, rootURL, course) => {
         hasUpdates = true;
       } else {
         log.info('no new modules. checking for new module items');
-        for (let j = 0; j < modules.length; j++) {
-          // log.info(`Remote Module: ${modules[j].name}, Length: ${modules[j].items_count}`);
-          // log.info(`Local Module: ${courseWithNewModules.modules[j].name}, Length: ${courseWithNewModules.modules[j].items_count}`);
+        for (let j = 0; j < modules.length; j += 1) {
           if (modules[j].items_count !== courseWithNewModules.modules[j].items_count) {
             courseWithNewModules.modules[j] = modules[j];
             newModules.push(modules[j]);
