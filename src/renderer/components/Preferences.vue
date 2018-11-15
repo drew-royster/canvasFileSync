@@ -99,7 +99,7 @@ export default {
     rebuild() {
       this.$store.dispatch('connect').then(() => {
         console.log('done reconnecting');
-        this.$router.push('/download');
+        this.$router.push('/configure');
       });
     },
     updateSyncFrequency() {

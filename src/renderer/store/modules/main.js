@@ -70,9 +70,16 @@ const mutations = {
   SYNCED(state) {
     state.lastSynced = Date.now();
   },
+  TOGGLE_SYNC_COURSE(state, payload) {
+    const courseIndex = _.findIndex(state.courses, { id: payload.courseID });
+    state.courses[courseIndex].sync = !state.courses[courseIndex].sync;
+  },
 };
 
 const actions = {
+  toggleSyncCourse({ commit }, payload) {
+    commit('TOGGLE_SYNC_COURSE', payload);
+  },
   connect({ commit }) {
     return new Promise((resolve, reject) => {
       try {

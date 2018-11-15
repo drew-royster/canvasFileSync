@@ -30,8 +30,10 @@
                       :key="course.id"
                       >
                       <v-list-tile-action>
-                        <v-icon v-if="course.sync" color="green">class</v-icon>
-                        <v-icon v-else color="red">class</v-icon>
+                        <v-btn icon @click="toggleSync(course.id)">
+                          <v-icon v-if="course.sync" color="green">class</v-icon>
+                          <v-icon v-else color="red">class</v-icon>
+                        </v-btn>
                       </v-list-tile-action>
                       <v-list-tile-content>
                       <v-list-tile-title v-if="course.sync">
@@ -122,6 +124,7 @@
 </template>
 
 <script>
+  const log = require('electron-log');
   export default {
     name: 'configure',
     data() {
@@ -141,6 +144,10 @@
       },
     },
     methods: {
+      toggleSync(courseID) {
+        log.info(courseID);
+        this.$store.dispatch('toggleSyncCourse', { courseID });
+      },
       chooseFolder() {
         this.$electron.ipcRenderer.send('choose-folder');
       },
