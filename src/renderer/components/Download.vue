@@ -30,6 +30,7 @@
 </template>
 
 <script>
+import is from 'electron-is';
 const _ = require('lodash');
 const path = require('path');
 const prettyMs = require('pretty-ms');
@@ -146,13 +147,16 @@ export default {
       this.filesToBeDownloaded = this.filesToBeDownloaded.concat(filesArray);
     });
     this.numFilesToBeDownloaded = this.filesToBeDownloaded.length;
-    this.foldersToBeCreated = _.sortBy(this.foldersToBeCreated, (folder) => {
-      return (folder.match(/\//g) || []).length;
-    });
+    if (is.windows()) {
+      this.foldersToBeCreated = _.sortBy(this.foldersToBeCreated, (folder) => {
+        return (folder.match(/\\/g) || []).length;
+      });
+    } else {
+      this.foldersToBeCreated = _.sortBy(this.foldersToBeCreated, (folder) => {
+        return (folder.match(/\//g) || []).length;
+      });
+    }
 
-    this.foldersToBeCreated = _.sortBy(this.foldersToBeCreated, (folder) => {
-      return (folder.match(/\\/g) || []).length;
-    });
     // Send the first folder to be created. This will then ping-pong until all of them are created
     this.$electron.ipcRenderer.send('create-folder', this.foldersToBeCreated[0]);
     setInterval(() => {

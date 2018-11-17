@@ -18,7 +18,7 @@
           <v-stepper-step editable :complete="step > 1" step="1">What will sync?</v-stepper-step>
           <v-stepper-items>
             <v-stepper-content step="1">
-              <v-card >
+              <v-card v-if="step == 1">
                 <v-layout row>
                   <v-flex>
                     <v-toolbar primary dark>
@@ -30,9 +30,21 @@
                       :key="course.id"
                       >
                       <v-list-tile-action>
-                        <v-btn icon @click="toggleSync(course.id)">
+                        <v-btn
+                          v-if="course.sync"
+                          icon
+                          @click="toggleSync(course.id)"
+                          :aria-label="`Disable ${course.name}`"
+                        >
                           <v-icon v-if="course.sync" color="green">class</v-icon>
-                          <v-icon v-else color="red">class</v-icon>
+                        </v-btn>
+                        <v-btn
+                          v-else
+                          icon
+                          @click="toggleSync(course.id)"
+                          :aria-label="`Enable ${course.name}`"
+                        >
+                          <v-icon color="red">class</v-icon>
                         </v-btn>
                       </v-list-tile-action>
                       <v-list-tile-content>
@@ -52,6 +64,15 @@
                 </v-layout>
               </v-card>
               <v-btn
+                v-if="step == 1"
+                color="primary"
+                @click="step = 2"
+              >
+                Continue
+              </v-btn>
+              <v-btn
+                v-else
+                disabled
                 color="primary"
                 @click="step = 2"
               >
@@ -63,12 +84,12 @@
             <v-stepper-content step="2">
               <v-layout row>
                 <v-flex mb-2 large>
-                  <v-btn large @click="chooseFolder">{{ folder }}</v-btn>
+                  <v-btn v-if="step == 2" large @click="chooseFolder">{{ folder }}</v-btn>
                 </v-flex>
               </v-layout>
 
               <v-btn
-                v-if="folderChosen"
+                v-if="folderChosen && step == 2"
                 color="primary"
                 @click="step = 3"
               >
@@ -95,8 +116,10 @@
                 <v-layout align-baseline row>
                   <v-flex xs1>
                     <v-text-field
+                      v-if="step == 3"
                       v-model="syncFrequency"
                       :rules="[() => parseInt(syncFrequency) > 0 || 'Must be greater than zero']"
+                      aria-label="How often to check for new files and folders"
                       ref="syncFrequency"
                       class="mt-0 headline"
                       type="number"
@@ -110,6 +133,7 @@
                 </v-layout>
               </v-layout>
               <v-btn
+                v-if="step == 3"
                 color="primary"
                 @click="beginSync"
               >
