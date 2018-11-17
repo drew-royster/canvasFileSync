@@ -21,6 +21,17 @@ const state = {
 };
 
 const mutations = {
+  RESET_STATE(state) {
+    state.authToken = null;
+    state.rootURL = null;
+    state.rootFolder = null;
+    state.syncFrequency = null;
+    state.version = appVersion;
+    state.courses = [];
+    state.gotAllCourses = false;
+    state.lastSynced = false;
+    state.error = false;
+  },
   UPDATE_SYNC_FREQUENCY(state, payload) {
     state.syncFrequency = parseInt(payload.newFrequency, 10);
   },
@@ -177,16 +188,8 @@ const actions = {
     });
   },
   clearStateGoLogin({ commit }) {
-    const loadState = new Promise(async (resolve) => {
-      const savedState = await dataStorage.getSavedState();
-      Object.entries(savedState).forEach(([key, value]) => {
-        commit('LOAD_PROPERTY', { key, value });
-      });
-      resolve();
-    });
-    return loadState.then(() => {
-      router.push('/');
-    });
+    commit('RESET_STATE');
+    router.push('/home');
   },
   goErrorPage({ commit }, payload) {
     commit('SET_ERROR', payload);

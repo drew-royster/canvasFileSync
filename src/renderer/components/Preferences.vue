@@ -49,10 +49,10 @@
                 <v-btn v-else disabled>Save</v-btn>        
               </v-layout>
               <v-layout ma-2 justify-center align-center>
-                <v-btn color="blue" large @click="rebuild">REBUILD! GET EVERYTHING AGAIN</v-btn>                       
+                <v-btn :loading="loadingRebuild" color="blue" large @click="rebuild">REBUILD! GET EVERYTHING AGAIN</v-btn>                       
               </v-layout>
               <v-layout ma-2 justify-center align-center>
-                <v-btn color="red" large @click="disconnect">LOGOUT AND ERASE ALL SETTINGS</v-btn>                       
+                <v-btn :loading="loadingDisconnect" color="red" large @click="disconnect">LOGOUT AND ERASE ALL SETTINGS</v-btn>                       
               </v-layout>
               <v-layout mt-5 justify-center align-center>
                 <v-footer class=“pa-3” absolute>
@@ -87,6 +87,8 @@ export default {
       successMessage: '',
       failureMessage: '',
       infoMessage: 'Update is available! Restart to Install',
+      loadingRebuild: false,
+      loadingDisconnect: false,
     };
   },
   methods: {
@@ -94,9 +96,11 @@ export default {
       this.$electron.ipcRenderer.send('choose-folder');
     },
     disconnect() {
+      this.loadingDisconnect = true;
       this.$electron.ipcRenderer.send('disconnect');
     },
     rebuild() {
+      this.loadingRebuild = true;
       this.$store.dispatch('connect').then(() => {
         console.log('done reconnecting');
         this.$router.push('/configure');
@@ -142,6 +146,7 @@ export default {
     });
     this.$electron.ipcRenderer.on('disconnected', () => {
       this.$store.dispatch('clearStateGoLogin');
+      this.loadingDisconnect = false;
     });
   },
 };
