@@ -7,6 +7,9 @@
           @click="close"
           @keyup.enter="close"
           @keyup.space="close"
+          @mouseover="closeIconColor = 'red'"
+          @mouseleave="closeIconColor = 'white'"
+          :color='closeIconColor'
           tabindex="1"
           aria-label="Close Window"
         >
@@ -17,8 +20,11 @@
           @click="minimize"
           @keyup.enter="minimize"
           @keyup.space="minimize"
+          @mouseover="minimizeIconColor = 'yellow'"
+          @mouseleave="minimizeIconColor = 'white'"
+          :color='minimizeIconColor'
           tabindex="2"
-          aria-label="Close Window"
+          aria-label="Minimize Window"
         >
           remove
         </v-icon>
@@ -31,8 +37,11 @@
           @click="minimize"
           @keyup.enter="minimize"
           @keyup.space="minimize"
+          @mouseover="minimizeIconColor = 'yellow'"
+          @mouseleave="minimizeIconColor = 'white'"
+          :color='minimizeIconColor'
           tabindex="2"
-          aria-label="Close Window"
+          aria-label="Minimize Window"
         >
           remove
         </v-icon>
@@ -43,6 +52,9 @@
           @keyup.space="close"
           tabindex="1"
           aria-label="Close Window"
+          @mouseover="closeIconColor = 'red'"
+          @mouseleave="closeIconColor = 'white'"
+          :color='closeIconColor'
         >
           close
         </v-icon>
@@ -76,6 +88,8 @@
     data() {
       return {
         isOSX: false,
+        closeIconColor: 'white',
+        minimizeIconColor: 'white',
       };
     },
     computed: {

@@ -37,6 +37,7 @@
                 <h1 class="headline">Sync Frequency</h1>
                 <v-flex ml-2 xs1>
                   <v-text-field
+                    aria-label="How often to check for new files and folders"
                     ref="localSyncFrequency"
                     v-model="localSyncFrequency"
                     :rules="[() => parseInt(localSyncFrequency) > 0 || 'Must be greater than zero']"
