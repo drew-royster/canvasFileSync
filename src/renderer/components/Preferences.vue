@@ -21,7 +21,7 @@
     >
       {{ infoMessage }}
     </v-alert>
-    <v-layout mt-5 justify-center align-center row>
+    <v-layout justify-center align-center row>
       <v-flex xs12 sm8>
         <v-layout row>
           <v-flex text-xs-center>

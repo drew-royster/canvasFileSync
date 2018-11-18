@@ -40,9 +40,13 @@ const winURL = process.env.NODE_ENV === 'development'
 const createWindow = () => {
   if (app.dock) app.dock.show();
   mainWindow = new BrowserWindow({
-    height: 600,
+    minHeight: 650,
+    minWidth: 1000,
+    height: 650,
     width: 1000,
     webPreferences: { webSecurity: false },
+    transparent: true,
+    frame: false,
   });
 
   log.info('window created');

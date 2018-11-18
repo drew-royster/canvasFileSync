@@ -1,6 +1,6 @@
 <template>
   <v-content>
-    <v-layout mt-5 justify-center align-center row>
+    <v-layout justify-center align-center row>
       <v-flex xs12 sm10>
         <v-layout v-if="!gotAllCourses" justify-center align-center>
           <v-progress-circular

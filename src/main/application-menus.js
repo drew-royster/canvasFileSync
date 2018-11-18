@@ -19,6 +19,14 @@ const template = [
         accelerator: 'CommandOrControl+A',
         role: 'selectall',
       },
+      {
+        label: 'Zoom In',
+        role: 'zoomin',
+      },
+      {
+        label: 'Zoom Out',
+        role: 'zoomout',
+      },
     ],
   },
 ];

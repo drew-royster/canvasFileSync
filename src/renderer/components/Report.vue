@@ -9,7 +9,7 @@
     >
       Whoops we were unable to get some files. Don't worry! We'll take care of it behind the scenes
     </v-alert>
-    <v-layout mt-5 justify-center align-center row>
+    <v-layout justify-center align-center row>
       <v-flex xs12 sm6 text-xs-center>
         <v-layout justify-center align-center row mb-3>
           <h1 display-4 text-xs-center>Download Report</h1>
