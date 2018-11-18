@@ -143,11 +143,7 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 };
 
 app.on('ready', async () => {
-  if (process.platform !== 'darwin') {
-    Menu.setApplicationMenu(null);
-  } else {
-    Menu.setApplicationMenu(applicationMenu);
-  }
+  Menu.setApplicationMenu(applicationMenu);
   tray = new Tray(
     path.join(__static, 'icons_normal/icons/png/32x32@2x.png') // eslint-disable-line
   );

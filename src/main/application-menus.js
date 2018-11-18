@@ -21,6 +21,7 @@ const template = [
       },
       {
         label: 'Zoom In',
+        accelerator: 'CommandOrControl+=',
         role: 'zoomin',
       },
       {
