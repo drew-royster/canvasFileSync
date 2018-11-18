@@ -2,8 +2,7 @@
   <div id="app">
     <v-app dark>
       <v-layout row>
-
-        <v-toolbar height="30px" fixed style="-webkit-app-region: drag">
+        <v-toolbar v-if="isOSX" height="30px" fixed style="-webkit-app-region: drag">
           <v-icon
             style="-webkit-app-region: no-drag;"
             small
@@ -30,6 +29,38 @@
           minimize
           </v-icon>
         </v-toolbar>
+        <v-toolbar align-end v-else height="30px" fixed style="-webkit-app-region: drag">
+          <v-spacer></v-spacer>
+          <v-toolbar-items>
+            <v-layout mt-2>
+              <v-icon
+                style="-webkit-app-region: no-drag;"
+                small
+                @click="minimize"
+                @keyup.enter="minimize"
+                @keyup.space="minimize"
+                medium
+                color="yellow"
+                tabindex="2"
+                aria-label="Close Window"
+              >
+              minimize
+              </v-icon>
+              <v-icon
+                style="-webkit-app-region: no-drag;"
+                small
+                @click="close"
+                @keyup.enter="close"
+                @keyup.space="close"
+                color="red"
+                tabindex="1"
+                aria-label="Close Window"
+              >
+              close
+              </v-icon>
+            </v-layout>
+          </v-toolbar-items>
+        </v-toolbar>
       </v-layout>
       <v-layout mt-3 row>
         <v-flex sm12>
@@ -54,8 +85,14 @@
 </template>
 
 <script>
+  import is from 'electron-is';
   export default {
-    name: 'vue-canvas',
+    name: 'main-container',
+    data() {
+      return {
+        isOSX: false,
+      };
+    },
     computed: {
       alerts() {
         return this.$store.getters.alerts;
@@ -68,6 +105,9 @@
       minimize() {
         this.$electron.remote.getCurrentWindow().minimize();
       },
+    },
+    mounted() {
+      this.isOSX = is.osx();
     },
   };
 </script>
