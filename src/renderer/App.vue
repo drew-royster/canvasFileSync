@@ -68,7 +68,7 @@
             :type="alert.type"
             dismissible
           >
-            {{ alert.text }}
+          {{ alert.text }}
           </v-alert>
         </v-flex>
       </v-layout>
