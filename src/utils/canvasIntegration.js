@@ -329,6 +329,9 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
     return newFolders;
   } catch (err) {
     log.error(err);
+    if (err.message.includes('Invalid access token.')) {
+      log.error('Auth Token Expired');
+    }
     return newFolders;
   }
 };
