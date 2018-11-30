@@ -1,5 +1,5 @@
 <template>
-  <webview id="foo" partition="persist::uvu" v-bind:src="`http://${url}`" style="display:inline-flex; width:100%; height:100%"></webview>
+  <webview id="foo" partition="persist::uvu" v-bind:src="`http://${url}`" style="display:inline-flex; width:1000px; height:650px"></webview>
 </template>
 
 <script>
