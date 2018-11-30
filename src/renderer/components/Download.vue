@@ -1,4 +1,3 @@
-
 <template>
   <v-content>
     <v-layout mt-5 justify-center align-center row>
@@ -83,6 +82,7 @@ export default {
   },
   mounted() {
     this.$electron.ipcRenderer.send('syncing');
+    this.$electron.ipcRenderer.send('download-started');
     this.$electron.ipcRenderer.on('folder-created', () => {
       this.numFoldersCreated += 1;
       if (this.numFoldersCreated < this.numFoldersToBeCreated) {

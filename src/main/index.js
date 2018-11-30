@@ -217,6 +217,11 @@ ipcMain.on('download-file', async (e, args) => {
   }
 });
 
+ipcMain.on('download-started', async () => {
+  const started = new Notification({ title: 'Download Started', body: 'Don\'t close this window until it is completed' });
+  started.show();
+});
+
 ipcMain.on('download-first-file', async (e, args) => {
   downloadFile(e, args, 'first-file-downloaded');
 });
@@ -287,6 +292,8 @@ ipcMain.on('syncing-done', async () => {
 });
 
 ipcMain.on('completed-initial-sync', async () => {
+  const started = new Notification({ title: 'Download Finished', body: 'Close the window and we\'ll keep you updated' });
+  started.show();
   updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
 });
 
