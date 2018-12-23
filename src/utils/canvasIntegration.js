@@ -199,7 +199,7 @@ const getFiles = async (authToken, filesURL, currentPath) => {
 //Right now this will only get 200 files may want to add recursion into this as well
 const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced) => {
   try {
-    const filesResponse = await apis.listFilesByUpdatedAt(authToken, filesURL);
+    const filesResponse = await apis.list200FilesByUpdatedAt(authToken, filesURL);
     // filter files updated more recently than lastSynced
     const newFiles = _.filter(filesResponse, (file) => {
       if (new Date(file.updated_at) > new Date(lastSynced)) {
@@ -338,14 +338,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
 
 const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
   try {
-    const options = {
-      method: 'GET',
-      uri: `https://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
-      headers: { Authorization: `Bearer ${authToken}` },
-      json: true,
-      encoding: null,
-    };
-    const filesLastUpdated = await request(options);
+    const filesLastUpdated = await apis.getLatestFile(authToken, rootURL, courseID);
 
     // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
