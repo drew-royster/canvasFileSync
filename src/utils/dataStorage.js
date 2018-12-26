@@ -113,6 +113,14 @@ const getSyncFrequency = async () => {
   return store.get('syncFrequency');
 };
 
+const addConflicts = async (conflicts) => {
+  let currentConflicts = store.get('conflicts');
+  const uniqueConflicts = _.filter(currentConflicts, (currentConflict) => {
+    return _.findIndex(conflicts, { filePath: currentConflict.filePath }) < 0;
+  })
+  return store.set('conflicts', conflicts.concat(uniqueConflicts));
+};
+
 export default {
   isConnected,
   saveCurrentState,
@@ -129,4 +137,5 @@ export default {
   getSyncFrequency,
   updateSyncFrequency,
   hasCheckedModules,
+  addConflicts
 };

@@ -281,9 +281,50 @@ const syncDownloadFiles = async (files, rootFolder) => {
   });
 };
 
+const conflictDownload = async (file, rootFolder) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const options = {
+        method: 'GET',
+        uri: file.url,
+        json: true,
+        encoding: null,
+      };
+      const response = await request.get(options);
+      const buffer = Buffer.from(response, 'utf8');
+      await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
+      resolve(file);
+    } catch (err) {
+      log.error(err);
+      reject(file);
+    }
+  });
+};
+
+const getFileNamesInFolder = async (folderPath) => {
+  return fs.readdirSync(folderPath);
+};
+
+ipcMain.on('download-conflict-file', async (event, payload) => {
+  const { file, rootFolder } = payload;
+  conflictDownload(file, rootFolder).then(() => {
+    event.sender.send('downloaded-conflict-file', file);
+  });
+});
+
 ipcMain.on('syncing', async () => {
   syncing = true;
   updateMenu(syncingMenu);
+});
+
+ipcMain.on('get-filenames-in-folder', async (event, folderPath) => {
+  event.sender.send('returning-filenames', await getFileNamesInFolder(folderPath));
+});
+
+ipcMain.on('rename-file', async (event, payload) => {
+  const { filePath, newFilePath } = payload;
+  await fs.renameSync(filePath, newFilePath);
+  event.sender.send('renamed-file');
 });
 
 ipcMain.on('syncing-done', async () => {
@@ -330,6 +371,7 @@ const sync = async (lastSynced) => {
   try {
     syncing = true;
     updateMenu(syncingMenu);
+    let allConflictFiles = [];
     const courses = await dataStorage.getSyncableCourses();
     const authToken = await dataStorage.getAuthToken();
     const rootURL = await dataStorage.getRootURL();
@@ -369,7 +411,38 @@ const sync = async (lastSynced) => {
         allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
         currentCourse = courseWithNewFilesAndFolders;
       }
-      const downloadedFiles = await syncDownloadFiles(allNewFiles, rootFolder);
+      console.log(allNewFiles);
+      // get conflicting files to store them in separate place
+      const conflictFiles = _.filter(allNewFiles, (newFile) => {
+        try {
+          const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
+          console.log(lastModifiedByUser);
+          const currentCourseFile = _.find(course.files, (courseFile) => {
+            return courseFile.filePath === newFile.filePath;
+          });
+          console.log(currentCourseFile.lastUpdated);
+          return lastModifiedByUser > currentCourseFile.lastUpdated;
+        } catch (err) {
+          return false;
+        }
+      });
+      allConflictFiles = allConflictFiles.concat(conflictFiles);
+      // get safe files to be downloaded
+      const safeFiles = _.filter(allNewFiles, (newFile) => {
+        try {
+          const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
+          console.log(lastModifiedByUser);
+          const currentCourseFile = _.find(course.files, (courseFile) => {
+            return courseFile.filePath === newFile.filePath;
+          });
+          console.log(currentCourseFile.lastUpdated);
+          return lastModifiedByUser < currentCourseFile.lastUpdated;
+        } catch (err) {
+          return true;
+        }
+      });
+
+      const downloadedFiles = await syncDownloadFiles(safeFiles, rootFolder);
       await Promise.all(_.forEach(downloadedFiles, async (file) => {
         const fileIndex = _.findIndex(currentCourse.files,
           { filePath: file.filePath });
@@ -377,6 +450,7 @@ const sync = async (lastSynced) => {
       }));
       return currentCourse;
     }));
+    await dataStorage.addConflicts(allConflictFiles);
     await dataStorage.updateCourses(updatedCourses);
     await dataStorage.updateLastSynced();
     syncing = false;

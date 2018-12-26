@@ -94,6 +94,9 @@
 
 <script>
   import is from 'electron-is';
+  const dataStorageFile = require('../utils/dataStorage');
+  const dataStorage = dataStorageFile.default;
+
   export default {
     name: 'main-container',
     data() {
@@ -110,6 +113,9 @@
     },
     methods: {
       close() {
+        if (dataStorage.isConnected()) {
+          this.$store.dispatch('saveState');
+        }
         this.$electron.remote.getCurrentWindow().close();
       },
       minimize() {

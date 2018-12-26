@@ -15,6 +15,7 @@ const state = {
   syncFrequency: null,
   version: appVersion,
   courses: [],
+  conflicts: [],
   gotAllCourses: false,
   lastSynced: null,
   error: null,
@@ -28,6 +29,7 @@ const mutations = {
     state.syncFrequency = null;
     state.version = appVersion;
     state.courses = [];
+    state.conflicts = [];
     state.gotAllCourses = false;
     state.lastSynced = false;
     state.error = false;
@@ -84,6 +86,11 @@ const mutations = {
   TOGGLE_SYNC_COURSE(state, payload) {
     const courseIndex = _.findIndex(state.courses, { id: payload.courseID });
     state.courses[courseIndex].sync = !state.courses[courseIndex].sync;
+  },
+  REMOVE_CONFLICT(state, payload) {
+    _.remove(state.conflicts, (conflict) => {
+      return payload.filePath === conflict.filePath;
+    });
   },
 };
 
@@ -157,6 +164,16 @@ const actions = {
       Object.entries(savedState).forEach(([key, value]) => {
         commit('LOAD_PROPERTY', { key, value });
       });
+      resolve();
+    });
+  },
+  saveState() {
+    dataStorage.saveCurrentState(state);
+  },
+  removeConflict({ commit }, payload) {
+    console.log(payload);
+    return new Promise(async (resolve) => {
+      commit('REMOVE_CONFLICT', payload);
       resolve();
     });
   },
@@ -236,6 +253,9 @@ const getters = {
   },
   version(state) {
     return state.version;
+  },
+  conflicts(state) {
+    return state.conflicts;
   },
 };
 
