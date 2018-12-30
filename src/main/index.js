@@ -343,13 +343,7 @@ ipcMain.on('disconnect', async (e) => {
 });
 
 ipcMain.on('create-folders', async (event, folders) => {
-  await Promise.all(_.map(folders, (folder) => {
-    return fs.access(path.resolve(folder), fs.constants.F_OK, (err) => {
-      if (err) {
-        fs.mkdirSync(folder);
-      }
-    });
-  }));
+  await createFolders(folders);
   event.sender.send('folders-created');
 });
 
@@ -396,11 +390,11 @@ const sync = async (lastSynced) => {
         rootURL, currentCourse, lastSynced);
       currentCourse = courseWithNewFolders;
       allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
-        return newFolder.folderPath;
+        return path.join(rootFolder, newFolder.folderPath);
       })));
-
+      log.info('new folders');
       // create folders from both the modules view and from the files view
-      await createNewFolders(rootFolder, allNewFolders);
+      await createFolders(allNewFolders);
       if (course.hasFilesTab) {
         // get new or updated files from files view
         const { courseWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
@@ -555,15 +549,14 @@ const getNewModules = async (authToken, rootURL, course) => {
   }
 };
 
-const createNewFolders = async (rootFolder, folders) => {
+const createFolders = async (folders) => {
   return Promise.all(
     _.forEach(folders, async (folder) => {
       try {
-        await fs.accessSync(path.join(rootFolder, folder), fs.constants.F_OK);
+        await fs.accessSync(folder, fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
-        log.error('Folder does not exist');
-        return fs.mkdirSync(path.join(rootFolder, folder));
+        return fs.mkdirSync(folder);
       }
     }));
 };
