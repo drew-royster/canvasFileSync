@@ -310,7 +310,7 @@ const downloadFile = async (e, args, ipcReceiver) => {
 
 
 const syncDownloadFiles = async (files, rootFolder) => {
-  return Promise.map(files, async (file) => {
+  return Promise.all(_.map(files, async (file) => {
     try {
       const options = {
         method: 'GET',
@@ -326,7 +326,7 @@ const syncDownloadFiles = async (files, rootFolder) => {
       log.error(err);
       return file;
     }
-  });
+  }));
 };
 
 const conflictDownload = async (file, rootFolder) => {
@@ -392,16 +392,15 @@ ipcMain.on('disconnect', async (e) => {
   e.sender.send('disconnected');
 });
 
-ipcMain.on('create-folder', (event, folder) => {
-  fs.access(path.resolve(folder), fs.constants.F_OK, (err) => {
-    if (err) {
-      fs.mkdir(folder, () => {
-        event.sender.send('folder-created', folder);
-      });
-    } else {
-      event.sender.send('folder-created', folder);
-    }
-  });
+ipcMain.on('create-folders', async (event, folders) => {
+  await Promise.all(_.map(folders, (folder) => {
+    return fs.access(path.resolve(folder), fs.constants.F_OK, (err) => {
+      if (err) {
+        fs.mkdirSync(folder);
+      }
+    });
+  }));
+  event.sender.send('folders-created');
 });
 
 app.on('activate', () => {

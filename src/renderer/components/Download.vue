@@ -85,10 +85,13 @@ export default {
   mounted() {
     this.$electron.ipcRenderer.send('syncing');
     this.$electron.ipcRenderer.send('download-started');
-    this.$electron.ipcRenderer.on('folder-created', () => {
-      this.numFoldersCreated += 1;
-      if (this.numFoldersCreated < this.numFoldersToBeCreated) {
-        this.$electron.ipcRenderer.send('create-folder', this.foldersToBeCreated[this.numFoldersCreated]);
+    this.$electron.ipcRenderer.on('folders-created', () => {
+      this.foldersCreated = true;
+      this.progressMessage = 'Downloading';
+      if (this.filesToBeDownloaded.length > 0) {
+        // const downloadSpeed = 200; // low end estimate 200Bytes/MS
+        this.projectedDownloadSpeed = 200;
+        this.$electron.ipcRenderer.send('download-files', this.filesToBeDownloaded);
       }
     });
     this.$electron.ipcRenderer.on('update-progress', (e, currentProgress) => {
@@ -98,13 +101,6 @@ export default {
       this.numFilesDownloaded = filesDownloaded;
       this.numFilesFailed = failedDownloads;
       this.signalDone();
-    });
-
-    this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
-      // this.numFilesFailed += 1;
-      const currentIndex = this.numFilesFailed + this.numFilesDownloaded;
-      this.filesToBeDownloaded[currentIndex] = file;
-      this.downloadFile(200); // low end estimate 200Bytes/MS
     });
     const onlySyncable = _.filter(this.courses, (course) => { return course.sync; });
     _.forEach(onlySyncable, (course) => {
@@ -151,7 +147,8 @@ export default {
     }
 
     // Send the first folder to be created. This will then ping-pong until all of them are created
-    this.$electron.ipcRenderer.send('create-folder', this.foldersToBeCreated[0]);
+    // this.$electron.ipcRenderer.send('create-folder', this.foldersToBeCreated[0]);
+    this.$electron.ipcRenderer.send('create-folders', this.foldersToBeCreated);
     setInterval(() => {
       if (this.currentTip + 1 === this.tips.length) {
         this.currentTip = 0;
@@ -159,19 +156,6 @@ export default {
         this.currentTip += 1;
       }
     }, 5 * 1000);
-  },
-  watch: {
-    numFoldersCreated() {
-      if (this.numFoldersCreated === this.numFoldersToBeCreated) {
-        this.foldersCreated = true;
-        this.progressMessage = 'Downloading';
-        if (this.filesToBeDownloaded.length > 0) {
-          // const downloadSpeed = 200; // low end estimate 200Bytes/MS
-          this.projectedDownloadSpeed = 200;
-          this.$electron.ipcRenderer.send('download-files', this.filesToBeDownloaded);
-        }
-      }
-    },
   },
   methods: {
     signalDone() {
