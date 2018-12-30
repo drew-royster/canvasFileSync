@@ -49,8 +49,6 @@ export default {
       ],
       progress: 0,
       currentTip: 0,
-      bytesToBeDownloaded: 0,
-      bytesDownloaded: 0,
       projectedDownloadSpeed: null,
       foldersToBeCreated: [],
       filesToBeDownloaded: [],
@@ -105,8 +103,6 @@ export default {
     const onlySyncable = _.filter(this.courses, (course) => { return course.sync; });
     _.forEach(onlySyncable, (course) => {
       // this applies for both modules view and the other views
-      const courseSum = _.sumBy(course.files, (file) => { return file.size; });
-      this.bytesToBeDownloaded += courseSum;
       const filesArray = _.map(course.files, (file) => {
         return {
           url: file.url,
@@ -169,29 +165,6 @@ export default {
         this.done = true;
         this.progressMessage = 'DONE';
       });
-    },
-    downloadFile(file) {
-      if (file.retries > 0) {
-        // this is the formula to estimate how long it will take to download
-        file.projectedDownloadTime = (file.size /
-          this.projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
-
-        // setting now as the start time of download
-        file.downloadStartTime = Date.now();
-
-        // decrementing retry count
-        file.retries -= 1;
-        const options = {
-          method: 'GET',
-          uri: file.url,
-          json: true,
-          encoding: null,
-        };
-        this.$electron.ipcRenderer.send('download-file', { options, file });
-      } else {
-        this.filesFailedToDownload.push(file);
-        this.numFilesFailed += 1;
-      }
     },
   },
 };

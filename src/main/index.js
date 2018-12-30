@@ -254,60 +254,10 @@ const downloadFiles = async (event, files) => {
 
 ipcMain.on('download-files', downloadFiles);
 
-// ipcMain.on('download-file', async (e, args) => {
-//   try {
-//     return downloadFile(e, args, 'file-downloaded');
-//   } catch (err) {
-//     log.error(pe.render(err));
-//     return e.sender.send('file-download-failed', args.file);
-//   }
-// });
-
 ipcMain.on('download-started', async () => {
   const started = new Notification({ title: 'Download Started', body: 'Don\'t close this window until it is completed' });
   started.show();
 });
-
-ipcMain.on('download-first-file', async (e, args) => {
-  downloadFile(e, args, 'first-file-downloaded');
-});
-
-const downloadFile = async (e, args, ipcReceiver) => {
-  const { options, file } = args;
-  try {
-    const timeout = new Promise((resolve) => {
-      setTimeout(resolve, file.projectedDownloadTime, 'Timed out');
-    });
-    const downloadPromise = new Promise(async (resolve, reject) => {
-      try {
-        const response = await requestPromise.get(options);
-        const buffer = Buffer.from(response, 'utf8');
-        await fs.writeFileSync(file.fullPath, buffer);
-        resolve('Download Finished');
-      } catch (err) {
-        console.error('problem downloading');
-        // log.error(pe.render(err));
-        reject(err);
-      }
-    });
-    return Promise.race([timeout, downloadPromise])
-      .then((response) => {
-        if (response === 'Download Finished') {
-          return e.sender.send(ipcReceiver, file);
-        }
-        return e.sender.send('file-download-failed', file);
-      })
-      .catch((err) => {
-        log.error(pe.render(err));
-        return e.sender.send('file-download-failed', file);
-      });
-  } catch (err) {
-    log.error('general exception');
-    // log.error(pe.render(err));
-    return e.sender.send('file-download-failed', file);
-  }
-};
-
 
 const syncDownloadFiles = async (files, rootFolder) => {
   return Promise.all(_.map(files, async (file) => {
