@@ -254,7 +254,6 @@ export default {
     rebuild() {
       this.loadingRebuild = true;
       this.$store.dispatch('connect').then(() => {
-        console.log('done reconnecting');
         this.$router.push('/configure');
       });
     },

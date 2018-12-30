@@ -32,8 +32,8 @@
 import is from 'electron-is';
 const _ = require('lodash');
 const path = require('path');
-const prettyMs = require('pretty-ms');
-const prettyBytes = require('pretty-bytes');
+// const prettyMs = require('pretty-ms');
+// const prettyBytes = require('pretty-bytes');
 const log = require('electron-log');
 
 export default {
@@ -51,8 +51,10 @@ export default {
       currentTip: 0,
       bytesToBeDownloaded: 0,
       bytesDownloaded: 0,
+      projectedDownloadSpeed: null,
       foldersToBeCreated: [],
       filesToBeDownloaded: [],
+      filesDownloading: [],
       filesDownloaded: [],
       filesFailedToDownload: [],
       numFoldersCreated: 0,
@@ -89,24 +91,15 @@ export default {
         this.$electron.ipcRenderer.send('create-folder', this.foldersToBeCreated[this.numFoldersCreated]);
       }
     });
-    this.$electron.ipcRenderer.on('file-downloaded', (e, file) => {
-      file.downloadEndTime = Date.now();
-      log.info(`File Name: ${file.name}`);
-      log.info(`Start Time: ${file.downloadStartTime}`);
-      log.info(`End Time: ${file.downloadStartTime}`);
-      const downloadTime = (file.downloadEndTime - file.downloadStartTime);
-      log.info(`Difference: ${prettyMs(downloadTime)}`);
-      log.info(`File Size: ${prettyBytes(file.size)}`);
-      const projectedDownloadSpeed = (file.size / downloadTime) -
-        ((file.size / downloadTime) * 0.5);
-      log.info(`Estimated Download Speed Bytes/Second: ${prettyBytes(projectedDownloadSpeed * 1000)}`);
-      this.filesDownloaded.push(file);
-      this.$store.dispatch('downloadedFile', file);
-      this.bytesDownloaded += file.size;
-      this.numFilesDownloaded += 1;
-      log.info(`sending ${projectedDownloadSpeed} to downloadFile`);
-      this.downloadFile(projectedDownloadSpeed);
+    this.$electron.ipcRenderer.on('update-progress', (e, currentProgress) => {
+      this.progress = currentProgress;
     });
+    this.$electron.ipcRenderer.on('download-report', (e, { filesDownloaded, failedDownloads }) => {
+      this.numFilesDownloaded = filesDownloaded;
+      this.numFilesFailed = failedDownloads;
+      this.signalDone();
+    });
+
     this.$electron.ipcRenderer.on('file-download-failed', (e, file) => {
       // this.numFilesFailed += 1;
       const currentIndex = this.numFilesFailed + this.numFilesDownloaded;
@@ -166,15 +159,6 @@ export default {
         this.currentTip += 1;
       }
     }, 5 * 1000);
-    setInterval(() => {
-      let currentProgress = 0;
-      if (!this.foldersCreated) {
-        currentProgress = (this.numFoldersCreated / this.numFoldersToBeCreated) * 100;
-      } else {
-        currentProgress = (this.bytesDownloaded / this.bytesToBeDownloaded) * 100;
-      }
-      this.progress = currentProgress;
-    }, 1 * 1000);
   },
   watch: {
     numFoldersCreated() {
@@ -182,54 +166,47 @@ export default {
         this.foldersCreated = true;
         this.progressMessage = 'Downloading';
         if (this.filesToBeDownloaded.length > 0) {
-          const downloadSpeed = 200; // low end estimate 200Bytes/MS
-          this.downloadFile(downloadSpeed);
+          // const downloadSpeed = 200; // low end estimate 200Bytes/MS
+          this.projectedDownloadSpeed = 200;
+          this.$electron.ipcRenderer.send('download-files', this.filesToBeDownloaded);
         }
       }
     },
   },
   methods: {
-    downloadFile(projectedDownloadSpeed) {
-      const currentIndex = this.numFilesDownloaded + this.numFilesFailed;
-      if (currentIndex !== this.numFilesToBeDownloaded) {
-        if (this.filesToBeDownloaded[currentIndex].retries > 0) {
-          // this is the formula to estimate how long it will take to download
-          this.filesToBeDownloaded[currentIndex].projectedDownloadTime =
-            (this.filesToBeDownloaded[currentIndex].size /
-            projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
+    signalDone() {
+      log.info('Done Downloading');
+      this.$electron.ipcRenderer.send('completed-initial-sync');
+      const payload = {
+        successes: this.numFilesDownloaded,
+        failures: this.numFilesFailed,
+      };
+      this.$store.dispatch('completedInitialSync', payload).then(() => {
+        this.done = true;
+        this.progressMessage = 'DONE';
+      });
+    },
+    downloadFile(file) {
+      if (file.retries > 0) {
+        // this is the formula to estimate how long it will take to download
+        file.projectedDownloadTime = (file.size /
+          this.projectedDownloadSpeed) + 5000; // in ms * adding 5 seconds
 
-          // setting now as the start time of download
-          this.filesToBeDownloaded[currentIndex].downloadStartTime = Date.now();
+        // setting now as the start time of download
+        file.downloadStartTime = Date.now();
 
-          // decrementing retry count
-          this.filesToBeDownloaded[currentIndex].retries -= 1;
-          const file = this.filesToBeDownloaded[currentIndex];
-          const options = {
-            method: 'GET',
-            uri: file.url,
-            json: true,
-            encoding: null,
-          };
-          log.info(`File size: ${prettyBytes(file.size)}`);
-          log.info(`MS expected to take: ${prettyMs(file.projectedDownloadTime)}`);
-          log.info(projectedDownloadSpeed);
-          log.info(`Download Speed: ${prettyBytes(projectedDownloadSpeed * 1000)}/s`);
-          this.$electron.ipcRenderer.send('download-file', { options, file });
-        } else {
-          this.filesFailedToDownload.push(this.filesToBeDownloaded[currentIndex]);
-          this.numFilesFailed += 1;
-          this.downloadFile(200); // low end estimate 200Bytes/MS
-        }
-      } else {
-        this.$electron.ipcRenderer.send('completed-initial-sync');
-        const payload = {
-          successes: this.numFilesDownloaded,
-          failures: this.numFilesFailed,
+        // decrementing retry count
+        file.retries -= 1;
+        const options = {
+          method: 'GET',
+          uri: file.url,
+          json: true,
+          encoding: null,
         };
-        this.$store.dispatch('completedInitialSync', payload).then(() => {
-          this.done = true;
-          this.progressMessage = 'DONE';
-        });
+        this.$electron.ipcRenderer.send('download-file', { options, file });
+      } else {
+        this.filesFailedToDownload.push(file);
+        this.numFilesFailed += 1;
       }
     },
   },

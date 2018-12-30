@@ -4,16 +4,17 @@ import * as Sentry from '@sentry/electron';
 import canvasIntegration from '../utils/canvasIntegration';
 
 Sentry.init({ dsn: 'https://312e7fd7b4784962ba2948b19547c3cc@sentry.io/1311555' });
-const Promise = require('bluebird');
 const path = require('path');
 const log = require('electron-log');
 const _ = require('lodash');
 const applicationMenu = require('./application-menus');
 const dataStorageFile = require('../utils/dataStorage');
+const fs = require('fs');
 const moment = require('moment');
 const dataStorage = dataStorageFile.default;
-const fs = require('fs');
-const request = require('request-promise');
+const requestPromise = require('request-promise');
+const request = require('request');
+const pMap = require('p-map');
 const PrettyError = require('pretty-error');
 const pe = new PrettyError();
 autoUpdater.autoDownload = true;
@@ -208,14 +209,59 @@ ipcMain.on('choose-folder', (event) => {
   event.sender.send('chose-folder', folder);
 });
 
-ipcMain.on('download-file', async (e, args) => {
-  try {
-    return downloadFile(e, args, 'file-downloaded');
-  } catch (err) {
-    log.error(pe.render(err));
-    return e.sender.send('file-download-failed', args.file);
-  }
-});
+const streamFile = (file) => {
+  return new Promise((resolve, reject) => {
+    const writeStream = fs.createWriteStream(file.fullPath);
+
+    request.get(file.url)
+      .on('error', reject)
+      .pipe(writeStream)
+      .on('close', resolve);
+  });
+};
+
+const downloadFiles = async (event, files) => {
+  const totalDownloadSize = _.sumBy(files, 'size');
+  let downloadedBytes = 0;
+  let filesDownloaded = 0;
+  let failedDownloads = 0;
+
+  await pMap(files, async (file) => {
+    try {
+      await streamFile(file);
+
+      downloadedBytes += file.size;
+      const completionPercentage = (downloadedBytes / totalDownloadSize) * 100;
+
+      filesDownloaded += 1;
+
+      event.sender.send('update-progress', completionPercentage);
+    } catch (error) {
+      failedDownloads += 1;
+      console.error(JSON.stringify({
+        error,
+        failedDownloads,
+        filesDownloaded,
+      }, null, 2));
+    }
+  }, { concurrency: 10 });
+
+  const report = { filesDownloaded, failedDownloads };
+
+  event.sender.send('download-report', report);
+};
+
+
+ipcMain.on('download-files', downloadFiles);
+
+// ipcMain.on('download-file', async (e, args) => {
+//   try {
+//     return downloadFile(e, args, 'file-downloaded');
+//   } catch (err) {
+//     log.error(pe.render(err));
+//     return e.sender.send('file-download-failed', args.file);
+//   }
+// });
 
 ipcMain.on('download-started', async () => {
   const started = new Notification({ title: 'Download Started', body: 'Don\'t close this window until it is completed' });
@@ -234,12 +280,13 @@ const downloadFile = async (e, args, ipcReceiver) => {
     });
     const downloadPromise = new Promise(async (resolve, reject) => {
       try {
-        const response = await request.get(options);
+        const response = await requestPromise.get(options);
         const buffer = Buffer.from(response, 'utf8');
         await fs.writeFileSync(file.fullPath, buffer);
         resolve('Download Finished');
       } catch (err) {
-        log.error(pe.render(err));
+        console.error('problem downloading');
+        // log.error(pe.render(err));
         reject(err);
       }
     });
@@ -256,10 +303,11 @@ const downloadFile = async (e, args, ipcReceiver) => {
       });
   } catch (err) {
     log.error('general exception');
-    log.error(pe.render(err));
+    // log.error(pe.render(err));
     return e.sender.send('file-download-failed', file);
   }
 };
+
 
 const syncDownloadFiles = async (files, rootFolder) => {
   return Promise.map(files, async (file) => {
@@ -270,7 +318,7 @@ const syncDownloadFiles = async (files, rootFolder) => {
         json: true,
         encoding: null,
       };
-      const response = await request.get(options);
+      const response = await requestPromise.get(options);
       const buffer = Buffer.from(response, 'utf8');
       await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
       return file;
@@ -290,7 +338,7 @@ const conflictDownload = async (file, rootFolder) => {
         json: true,
         encoding: null,
       };
-      const response = await request.get(options);
+      const response = await requestPromise.get(options);
       const buffer = Buffer.from(response, 'utf8');
       await fs.writeFileSync(path.join(rootFolder, file.filePath), buffer);
       resolve(file);

@@ -2,7 +2,6 @@
   <div id="app">
     <v-app dark>
       <div>
-
         <v-layout row>
           <v-flex>
             <v-system-bar v-if="isOSX" window dark style="-webkit-app-region: drag">
