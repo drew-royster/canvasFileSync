@@ -556,6 +556,7 @@ const createFolders = async (folders) => {
         await fs.accessSync(folder, fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
+        log.error('Folder does not exist');
         return fs.mkdirSync(folder);
       }
     }));
