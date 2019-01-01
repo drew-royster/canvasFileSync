@@ -52,7 +52,6 @@ export default {
       projectedDownloadSpeed: null,
       foldersToBeCreated: [],
       filesToBeDownloaded: [],
-      filesDownloading: [],
       filesDownloaded: [],
       filesFailedToDownload: [],
       numFoldersCreated: 0,

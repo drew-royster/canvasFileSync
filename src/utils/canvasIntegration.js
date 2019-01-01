@@ -25,18 +25,22 @@ const getCourses = async (
       const tabs = await apis.listCourseTabs(authToken, rootURL, activeCourse.id);
       const hasModulesTab = await hasItem(tabs, { id: 'modules'});
       const hasFilesTab = await hasItem(tabs, { id: 'files'});
-        return { id: activeCourse.id,
-          hasModulesTab,
-          hasFilesTab,
-          sync: true,
-          name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-'}),
-          modules: [],
-          folder: true,
-          files: [],
-          folders: [],
-          files_url: null,
-          folders_url: null,
-        };
+      let files_url, folders_url = null;
+      if (hasFilesTab) {
+        ({ files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id));
+      }
+      return { id: activeCourse.id,
+        hasModulesTab,
+        hasFilesTab,
+        sync: true,
+        name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-'}),
+        modules: [],
+        folder: true,
+        files: [],
+        folders: [],
+        files_url,
+        folders_url,
+      };
     }));
     return { success: true, message: 'success', response: activeCourses };
   } catch (error) {
@@ -234,7 +238,6 @@ const findAllFolders = async (authToken, course) => {
           return Promise.all(_.map(items, async (item) => {
             files.push(item);
             if (item.folders_count > 0) {
-              log.info(item);
               return findFolders(authToken, item, item.folderPath, files);
             } 
           }));
@@ -295,8 +298,6 @@ const getCourseFilesAndFolders = async (authToken, course) => {
   let files = await findAllFiles(authToken, folders);
   const filesResponse = await getFiles(authToken, course.files_url, course.name);
   files = files.concat(filesResponse);
-  course.files = files;
-  course.folders = folders;
   return { files, folders };
 };
 

@@ -1,104 +1,160 @@
+import request from 'request-promise';
 import canvasIntegration from '../../../src/utils/canvasIntegration';
 
-// this is for an AWS API Gateway and doesn't correlate to any real data
-const authToken = 'MvYujAXDbZEodUwe1CarI42IRABT5p04yU9lJoerbGzjyrJRjzyxAC8NR8DqpeJs';
-
-// this is the AWS API Gateway url. Not a real canvas installation
-const rootURL = 'ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage';
+const authToken = process.env.authToken;
+const rootURL = process.env.rootURL;
+const protocol = 'http://';
+const accountID = 1;
+let courseID;
+let folderID;
 
 const expectedCourses = [
   {
     id: 1,
+    hasModulesTab: true,
+    hasFilesTab: true,
     sync: true,
-    name: 'Course 1',
+    name: 'Test',
+    modules: [],
     folder: true,
-    files_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3202692/files',
-    folders_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3202692/folders',
+    files: [],
+    folders: [],
+    files_url: null,
+    folders_url: null,
   },
 ];
 
-const expectedFolders = [
-  {
-    name: 'APA',
-    lastUpdated: '2018-08-19T22:15:13Z',
-    folder: true,
-    folders_count: 1,
-    folders_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/folders',
-    files_count: 1,
-    files_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/files',
-    sync: true,
-    id: 3414348,
-    folderPath: 'Course 1/APA',
-  },
-  {
-    name: 'Files',
-    lastUpdated: '2018-08-19T22:15:12Z',
-    folder: true,
-    folders_count: 0,
-    folders_url: '',
-    files_count: 0,
-    files_url: '',
-    sync: true,
-    id: 3414345,
-    folderPath: 'Course 1/Files',
-  },
-  {
-    name: 'NESTED',
-    lastUpdated: '2018-08-19T22:15:13Z',
-    folder: true,
-    folders_count: 0,
-    folders_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/folders',
-    files_count: 0,
-    files_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/files',
-    sync: true,
-    id: 3414349,
-    folderPath: 'Course 1/APA/NESTED',
-  },
-];
+// const expectedFolders = [
+//   {
+//     name: 'APA',
+//     lastUpdated: '2018-08-19T22:15:13Z',
+//     folder: true,
+//     folders_count: 1,
+//     folders_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/folders',
+//     files_count: 1,
+//     files_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/files',
+//     sync: true,
+//     id: 3414348,
+//     folderPath: 'Course 1/APA',
+//   },
+//   {
+//     name: 'Files',
+//     lastUpdated: '2018-08-19T22:15:12Z',
+//     folder: true,
+//     folders_count: 0,
+//     folders_url: '',
+//     files_count: 0,
+//     files_url: '',
+//     sync: true,
+//     id: 3414345,
+//     folderPath: 'Course 1/Files',
+//   },
+//   {
+//     name: 'NESTED',
+//     lastUpdated: '2018-08-19T22:15:13Z',
+//     folder: true,
+//     folders_count: 0,
+//     folders_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/folders',
+//     files_count: 0,
+//     files_url: 'https://ebqz3oi7da.execute-api.us-east-1.amazonaws.com/stage/api/v1/folders/3414348/files',
+//     sync: true,
+//     id: 3414349,
+//     folderPath: 'Course 1/APA/NESTED',
+//   },
+// ];
 
-const expectedFiles = [
-  {
-    name: 'APA 6th.dot',
-    url: 'https://s3.amazonaws.com/test-canvas/APA+6th.dot',
-    folder: false,
-    lastUpdated: null,
-    size: 53760,
-    sync: true,
-    id: 88841898,
-    filePath: 'Course 1/APA/APA 6th.dot',
-  },
-];
+// const expectedFiles = [
+//   {
+//     name: 'APA 6th.dot',
+//     url: 'https://s3.amazonaws.com/test-canvas/APA+6th.dot',
+//     folder: false,
+//     lastUpdated: null,
+//     size: 53760,
+//     sync: true,
+//     id: 88841898,
+//     filePath: 'Course 1/APA/APA 6th.dot',
+//   },
+// ];
 
 describe('canvas integration', () => {
-  it('should get active courses', async () => {
-    const activeCourses = await canvasIntegration.getCourses(
-      authToken,
-      rootURL,
-    );
-    expect(JSON.stringify(activeCourses.response, null, 2))
-      .to.equal(JSON.stringify(expectedCourses, null, 2));
+  before(async () => {
+    // create course
+    const createCourseOptions = {
+      method: 'POST',
+      uri: `${protocol}${rootURL}/api/v1/accounts/${accountID}/courses`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      formData: { 'course[name]': 'Test' },
+      json: true,
+    };
+    ({ id: courseID } = await request(createCourseOptions));
+    expectedCourses[0].id = courseID;
+    // enroll user
+    const enrollUserOptions = {
+      method: 'POST',
+      uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/enrollments`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      formData: { 'enrollment[user_id]': accountID, 'enrollment[enrollment_state]': 'active' },
+      json: true,
+    };
+    await request(enrollUserOptions);
+    // publish course
+    const publishCourseOptions = {
+      method: 'PUT',
+      uri: `${protocol}${rootURL}/api/v1/courses/${courseID}`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      formData: {
+        'course[event]': 'publish',
+        enroll_me: 'true',
+        'course[is_public_to_auth_users]': 'true',
+        offer: 'true',
+      },
+    };
+    await request(publishCourseOptions);
+    const getRootFolderOptions = {
+      method: 'GET',
+      uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/folders/root`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+    };
+    const { id: rootFolderID } = await request(getRootFolderOptions);
+
+    const createFolderOptions = {
+      method: 'POST',
+      uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/folders`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      formData: { name: 'Test', parent_folder_id: rootFolderID },
+    };
+    await request(createFolderOptions);
+    return 'done';
   });
-  it('course 1 should have access to files api', async () => {
-    const hasAccess = await canvasIntegration.hasAccessToFilesAPI(
-      authToken,
-      rootURL, 1,
-    );
-    expect(hasAccess).to.be.true; // eslint-disable-line
+  describe('course related functions', () => {
+    it('should get active courses', async () => {
+      const activeCourses = await canvasIntegration.getCourses(
+        authToken,
+        rootURL,
+      );
+      console.log(JSON.stringify(activeCourses.response, 0, 2));
+      expect(activeCourses.response)
+        .to.deep.equal(expectedCourses);
+    });
+    it('should have Test folder', async () => {
+      const activeCourses = await canvasIntegration.findAllFolders(
+        authToken,
+        rootURL,
+      );
+      expect(activeCourses.response)
+        .to.deep.equal(expectedCourses);
+    });
   });
-  it('should get all folders for course 1', async () => {
-    const allFolders = await canvasIntegration.findAllFolders(
-      authToken,
-      expectedCourses[0],
-    );
-    expect(JSON.stringify(allFolders, null, 2))
-      .to.equal(JSON.stringify(expectedFolders, null, 2));
-  });
-  it('should get all files for course 1', async () => {
-    const allFiles = await canvasIntegration.findAllFiles(
-      authToken,
-      expectedFolders,
-    );
-    expect(JSON.stringify(expectedFiles, null, 2))
-      .to.equal(JSON.stringify(allFiles, null, 2));
-  });
+  // after(async () => {
+  //   const deleteCourseOptions = {
+  //     method: 'DELETE',
+  //     uri: `${protocol}${rootURL}/api/v1/courses/${courseID}`,
+  //     headers: { Authorization: `Bearer ${authToken}` },
+  //     formData: { event: 'delete' },
+  //     json: true,
+  //   };
+  //   await request(deleteCourseOptions);
+  // });
 });

@@ -3,7 +3,7 @@ const request = require('request-promise');
 
 let protocol;
 
-if (process.env.NODE_ENV !== 'development') {
+if (process.env.NODE_ENV === 'production') {
   protocol = 'https://';
 } else {
   protocol = 'http://';

@@ -29,6 +29,7 @@ log.info('started main process');
  */
 if (process.env.NODE_ENV !== 'development') {
   global.__static = path.join(__dirname, '/static').replace(/\\/g, '\\\\') // eslint-disable-line
+  app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
 }
 
 let mainWindow = null;
@@ -402,7 +403,6 @@ const sync = async (lastSynced) => {
         allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
         currentCourse = courseWithNewFilesAndFolders;
       }
-      console.log(allNewFiles);
       // get conflicting files to store them in separate place
       const conflictFiles = _.filter(allNewFiles, (newFile) => {
         try {
@@ -411,7 +411,6 @@ const sync = async (lastSynced) => {
           const currentCourseFile = _.find(course.files, (courseFile) => {
             return courseFile.filePath === newFile.filePath;
           });
-          console.log(currentCourseFile.lastUpdated);
           return lastModifiedByUser > currentCourseFile.lastUpdated;
         } catch (err) {
           return false;
@@ -422,11 +421,9 @@ const sync = async (lastSynced) => {
       const safeFiles = _.filter(allNewFiles, (newFile) => {
         try {
           const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
-          console.log(lastModifiedByUser);
           const currentCourseFile = _.find(course.files, (courseFile) => {
             return courseFile.filePath === newFile.filePath;
           });
-          console.log(currentCourseFile.lastUpdated);
           return lastModifiedByUser < currentCourseFile.lastUpdated;
         } catch (err) {
           return true;
@@ -556,10 +553,7 @@ const createFolders = async (folders) => {
         await fs.accessSync(folder, fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
-        log.error('Folder does not exist');
         return fs.mkdirSync(folder);
       }
     }));
 };
-
-app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });

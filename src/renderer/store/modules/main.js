@@ -110,31 +110,21 @@ const actions = {
               resolve();
             } else {
               response.response.forEach(async (course) => {
-                log.info(course);
-                let courseFiles = [];
-                let courseFolders = [];
                 // get modules and module files if that tab is available
                 if (course.hasModulesTab) {
-                  const modules = await canvasIntegration.getModules(state.authToken,
+                  course.modules = await canvasIntegration.getModules(state.authToken,
                     state.rootURL, course);
-                  course.modules = modules;
                   const filesRaw = await canvasIntegration.getModulesFiles(state.authToken,
-                    modules, course);
-                  courseFiles = courseFiles.concat(_.flatten(filesRaw));
+                    course.modules, course);
+                  course.files = course.files.concat(_.flatten(filesRaw));
                 }
                 // get files and folders if files tab is available
                 if (course.hasFilesTab) {
-                  const { files_url, folders_url } = await canvasIntegration // eslint-disable-line
-                    .getCourseFilesANDFoldersURLS(state.authToken, state.rootURL, course.id);
-                  course.files_url = files_url; // eslint-disable-line
-                  course.folders_url = folders_url; // eslint-disable-line
                   const { files, folders } = await canvasIntegration.getCourseFilesAndFolders(
                     state.authToken, course);
-                  courseFiles = courseFiles.concat(files);
-                  courseFolders = courseFolders.concat(folders);
+                  course.files.push(...files);
+                  course.folders = folders;
                 }
-                course.files = courseFiles;
-                course.folders = courseFolders;
                 commit('ADD_COURSE', course);
                 coursesAdded += 1;
                 if (coursesAdded === response.response.length) {
