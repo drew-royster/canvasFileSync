@@ -1,9 +1,9 @@
-/* eslint-disable */
+
+import apis from './apis';
 const path = require('path');
 const _ = require('lodash');
 const log = require('electron-log');
 const filenamify = require('filenamify');
-import apis from './apis';
 
 const hasItem = async (collection, item) => {
   const foundItem = _.find(collection, item);
@@ -21,17 +21,18 @@ const getCourses = async (
     const activeCoursesResponse = await apis.listActiveCanvasCourses(authToken, rootURL);
     const activeCourses = await Promise.all(_.map(activeCoursesResponse, async (activeCourse) => {
       const tabs = await apis.listCourseTabs(authToken, rootURL, activeCourse.id);
-      const hasModulesTab = await hasItem(tabs, { id: 'modules'});
-      const hasFilesTab = await hasItem(tabs, { id: 'files'});
-      let files_url, folders_url = null;
+      const hasModulesTab = await hasItem(tabs, { id: 'modules' });
+      const hasFilesTab = await hasItem(tabs, { id: 'files' });
+      let files_url = null; // eslint-disable-line
+      let folders_url = null; // eslint-disable-line
       if (hasFilesTab) {
-        ({ files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id));
+        ({ files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id)); // eslint-disable-line
       }
       return { id: activeCourse.id,
         hasModulesTab,
         hasFilesTab,
         sync: true,
-        name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-'}),
+        name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-' }),
         modules: [],
         folder: true,
         files: [],
@@ -55,13 +56,13 @@ const getCourses = async (
 const getModules = async (authToken, rootURL, course) => {
   const modulesRaw = await apis.listModules(authToken, rootURL, course);
   return Promise.all(_.map(modulesRaw, async (courseModule) => {
-    const cleanName = filenamify(courseModule.name, { replacement: '-'});
+    const cleanName = filenamify(courseModule.name, { replacement: '-' });
     return {
       name: cleanName,
       modulePath: path.join(course.name, cleanName),
       items_url: courseModule.items_url,
       items_count: courseModule.items_count,
-    }
+    };
   }));
 };
 
@@ -78,8 +79,8 @@ const getModulesFiles = async (authToken, modules, course) => {
     // parse file information into something usable
     const files = await Promise.all(_.map(filesRaw, async (fileRaw) => {
       const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-      const cleanName = filenamify(courseModule.name, { replacement: '-'});
-      const filename = filenamify(filenameDecoded, { replacement: '-'});
+      const cleanName = filenamify(courseModule.name, { replacement: '-' });
+      const filename = filenamify(filenameDecoded, { replacement: '-' });
       const filePath = path.join(course.name, cleanName, filename);
       const file = {
         name: filename,
@@ -98,7 +99,7 @@ const getModulesFiles = async (authToken, modules, course) => {
 };
 
 const getUpdatedModulesFiles = async (authToken, modules, course) => {
-  let updatedModulesFiles = [];
+  const updatedModulesFiles = [];
   const courseWithModulesFiles = JSON.parse(JSON.stringify(course));
 
   await Promise.all(_.map(modules, async (courseModule) => {
@@ -114,8 +115,8 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
     await Promise.all(_.map(filesRaw, async (fileRaw) => {
       // log.info('updated file');
       const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-      const cleanName = filenamify(courseModule.name, { replacement: '-'});
-      const filename = filenamify(filenameDecoded, { replacement: '-'});
+      const cleanName = filenamify(courseModule.name, { replacement: '-' });
+      const filename = filenamify(filenameDecoded, { replacement: '-' });
       const filePath = path.join(course.name, cleanName, filename);
       const file = {
         name: filename,
@@ -142,7 +143,7 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
   return { updatedModulesFiles, courseWithModulesFiles };
 };
 
-//Right now this will only get 100 folders may want to add recursion into this as well
+// Right now this will only get 100 folders may want to add recursion into this as well
 const getFolders = async (authToken, folderURL, currentPath) => {
   const foldersResponse = await apis.list200Items(authToken, folderURL);
   return Promise.all(_.map(foldersResponse, async (folder) => {
@@ -162,12 +163,11 @@ const getFolders = async (authToken, folderURL, currentPath) => {
   }));
 };
 
-//Right now this will only get 200 files may want to add recursion into this as well
+// Right now this will only get 200 files may want to add recursion into this as well
 const getFiles = async (authToken, filesURL, currentPath) => {
   const filesResponse = await apis.list200Items(authToken, filesURL);
   return Promise.all(_.map(filesResponse, async (fileRaw) => {
     const filePath = path.join(currentPath, fileRaw.display_name);
-  
     return {
       name: fileRaw.display_name,
       url: fileRaw.url,
@@ -177,11 +177,11 @@ const getFiles = async (authToken, filesURL, currentPath) => {
       sync: true,
       id: fileRaw.id,
       filePath,
-    }
+    };
   }));
 };
 
-//Right now this will only get 200 files may want to add recursion into this as well
+// Right now this will only get 200 files may want to add recursion into this as well
 const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced) => {
   try {
     const filesResponse = await apis.list200FilesByUpdatedAt(authToken, filesURL);
@@ -190,19 +190,20 @@ const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced
       if (new Date(file.updated_at) > new Date(lastSynced)) {
         return file;
       }
+      return false;
     });
     return Promise.all(_.map(newFiles, async (newFile) => {
       const filePath = path.join(currentPath, newFile.display_name);
-        return {
-          name: newFile.display_name,
-          url: newFile.url,
-          folder: false,
-          lastUpdated: null,
-          size: newFile.size,
-          sync: true,
-          id: newFile.id,
-          filePath,
-        }
+      return {
+        name: newFile.display_name,
+        url: newFile.url,
+        folder: false,
+        lastUpdated: null,
+        size: newFile.size,
+        sync: true,
+        id: newFile.id,
+        filePath,
+      };
     }));
   } catch (err) {
     log.error(err);
@@ -220,17 +221,19 @@ const findAllFolders = async (authToken, course) => {
             files.push(item);
             if (item.folders_count > 0) {
               return findFolders(authToken, item, item.folderPath, files);
-            } 
+            }
+            return false;
           }));
         })
         .then(() => {
-          return files
-        })
-    }
+          return files;
+        });
+    };
     return findFolders(authToken, course, course.name);
   } catch (error) {
     log.error(error);
   }
+  return false;
 };
 
 const findAllFiles = async (authToken, folders) => {
@@ -246,22 +249,26 @@ const findAllFiles = async (authToken, folders) => {
   } catch (error) {
     log.error(error);
   }
-}
+  return false;
+};
 
 const getAllNewOrUpdatedFiles = async (authToken, course, lastSynced) => {
   try {
     let files = [];
-    const rootFolderFiles = await getNewOrUpdatedFiles(authToken, course.files_url, course.name, lastSynced);
+    const rootFolderFiles = await getNewOrUpdatedFiles(authToken,
+      course.files_url, course.name, lastSynced);
     files = files.concat(rootFolderFiles);
     await Promise.all(_.map(course.folders, async (folder) => {
-      const folderFiles = await getNewOrUpdatedFiles(authToken, folder.files_url, folder.folderPath, lastSynced);
+      const folderFiles = await getNewOrUpdatedFiles(authToken,
+        folder.files_url, folder.folderPath, lastSynced);
       files = files.concat(folderFiles);
     }));
     return files;
   } catch (error) {
     log.error('problem getting new files');
   }
-}
+  return false;
+};
 
 const getCourseFilesANDFoldersURLS = async (authToken, rootURL, courseID) => {
   try {
@@ -288,7 +295,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
     // parse information add to new folders if more recent than the last time synced
     _.forEach(foldersLastUpdated, (folderRaw) => {
       if (folderRaw.full_name !== 'course files') {
-        const parseFullName = folderRaw.full_name.replace('course files','');
+        const parseFullName = folderRaw.full_name.replace('course files', '');
         const folderPath = path.join(course.name, parseFullName);
         const folder = {
           name: folderRaw.name,
@@ -301,7 +308,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
           sync: true,
           id: folderRaw.id,
           folderPath,
-        }
+        };
         if (new Date(folder.lastUpdated) > new Date(lastSynced)) {
           newFolders.push(folder);
         }
@@ -324,9 +331,8 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
       log.info('new file');
       return true;
-    } else {
-      return false;
     }
+    return false;
   } catch (err) {
     log.error(`Error checking if ${courseID} has new files`);
     return false;

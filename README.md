@@ -28,6 +28,6 @@ Clone this repository and run `yarn`. Once it's done installing the modules, run
 Releases are being code signed so your personal build will not work with the built in autoupdating.
 
 ## TODO
-- [ ] Toggle courses/folders to sync
-- [ ] Increase initial download speed
+- [x] Toggle courses/folders to sync
+- [x] Increase initial download speed
 - [ ] Handle situations more gracefully where an update has occurred both locally and remotely
