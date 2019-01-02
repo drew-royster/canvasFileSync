@@ -6,7 +6,6 @@ const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
 const _ = require('lodash');
-const log = require('electron-log');
 
 const state = {
   authToken: null,
@@ -161,7 +160,6 @@ const actions = {
     dataStorage.saveCurrentState(state);
   },
   removeConflict({ commit }, payload) {
-    console.log(payload);
     return new Promise(async (resolve) => {
       commit('REMOVE_CONFLICT', payload);
       resolve();

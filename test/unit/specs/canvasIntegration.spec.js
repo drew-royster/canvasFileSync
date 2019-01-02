@@ -1,4 +1,5 @@
 import request from 'request-promise';
+import fs from 'fs';
 import canvasIntegration from '../../../src/utils/canvasIntegration';
 
 const authToken = process.env.authToken;
@@ -7,6 +8,8 @@ const protocol = 'http://';
 const accountID = 1;
 let courseID;
 let folderID;
+let fileID;
+let folders;
 
 const expectedCourses = [
   {
@@ -125,8 +128,72 @@ describe('canvas integration', () => {
       json: true,
       formData: { name: 'Test', parent_folder_id: rootFolderID },
     };
-    await request(createFolderOptions);
-    return 'done';
+    ({ id: folderID } = await request(createFolderOptions));
+
+    const askUploadOptions = {
+      method: 'POST',
+      uri: `${protocol}${rootURL}/api/v1/folders/${folderID}/files`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      formData: { name: 'README.md' },
+    };
+    const { upload_url, upload_params } = await request(askUploadOptions); // eslint-disable-line
+
+    // console.log(upload_url);
+    // console.log(upload_params);
+
+    const uploadOptions = {
+      method: 'POST',
+      uri: upload_url,
+      resolveWithFullResponse: true,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      formData: {
+        key: upload_params.key,
+        Filename: upload_params.Filename,
+        acl: upload_params.acl,
+        Policy: upload_params.Policy,
+        Signature: upload_params.Signature,
+        'content-type': upload_params['content-type'],
+        file: fs.createReadStream('README.md'),
+      },
+    };
+    try {
+      await request(uploadOptions);
+    } catch (err) {
+      const dummyPage = document.createElement('html');
+      dummyPage.innerHTML = err.message;
+      const link = dummyPage.getElementsByTagName('a');
+      const confirmURL = link[0].attributes[0].value.replace(/\\"/g, '');
+      const confirmUploadOptions = {
+        method: 'GET',
+        uri: confirmURL,
+        headers: { Authorization: `Bearer ${authToken}` },
+        json: true,
+      };
+      ({ id: fileID } = await request.get(confirmUploadOptions));
+
+      const createModuleOptions = {
+        method: 'POST',
+        uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/modules`,
+        headers: { Authorization: `Bearer ${authToken}` },
+        formData: { 'module[name]': 'TestModule' },
+        json: true,
+      };
+      const { id: moduleID } = await request(createModuleOptions);
+
+      const addModuleItemOptions = {
+        method: 'POST',
+        uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/modules/${moduleID}/items`,
+        headers: { Authorization: `Bearer ${authToken}` },
+        formData: {
+          'module_item[type]': 'File',
+          'module_item[content_id]': fileID,
+        },
+        json: true,
+      };
+      await request(addModuleItemOptions);
+    }
   });
   describe('course related functions', () => {
     it('should get active courses', async () => {
@@ -134,27 +201,74 @@ describe('canvas integration', () => {
         authToken,
         rootURL,
       );
-      console.log(JSON.stringify(activeCourses.response, 0, 2));
+      // console.log(JSON.stringify(activeCourses.response, 0, 2));
+      expectedCourses[0].files_url = activeCourses.response[0].files_url;
+      expectedCourses[0].folders_url = activeCourses.response[0].folders_url;
       expect(activeCourses.response)
         .to.deep.equal(expectedCourses);
     });
     it('should have Test folder', async () => {
-      const activeCourses = await canvasIntegration.findAllFolders(
+      folders = await canvasIntegration.findAllFolders(
         authToken,
-        rootURL,
+        expectedCourses[0],
       );
-      expect(activeCourses.response)
-        .to.deep.equal(expectedCourses);
+      expect(folders.length)
+        .to.equal(1);
+      expect(folders[0].id)
+        .to.equal(folderID);
+      expect(folders[0].folderPath)
+        .to.equal('Test/Test');
+    });
+    it('should have README.md', async () => {
+      const files = await canvasIntegration.findAllFiles(
+        authToken,
+        folders,
+      );
+      expect(files.length)
+        .to.equal(1);
+      expect(files[0].name)
+        .to.equal('README.md');
+      expect(files[0].lastUpdated)
+        .to.equal(null);
+    });
+    it('should have README.md and Test folder from getcoursefilesandfolders', async () => {
+      const { files: courseFiles, folders: courseFolders } = await canvasIntegration
+        .getCourseFilesAndFolders(
+          authToken,
+          expectedCourses[0],
+        );
+      expect(courseFiles.length)
+        .to.equal(1);
+      expect(courseFolders.length)
+        .to.equal(1);
+      expect(courseFolders[0].folderPath)
+        .to.equal('Test/Test');
+      expect(courseFiles[0].name)
+        .to.equal('README.md');
+      expect(courseFiles[0].lastUpdated)
+        .to.equal(null);
+    });
+    it('should have module with README.md', async () => {
+      const modules = await canvasIntegration
+        .getModules(authToken, rootURL, expectedCourses[0]);
+      const files = await canvasIntegration
+        .getModulesFiles(authToken, modules, expectedCourses[0]);
+      expect(modules.length)
+        .to.equal(1);
+      expect(files.length)
+        .to.equal(1);
+      expect(modules[0].name)
+        .to.equal('TestModule');
     });
   });
-  // after(async () => {
-  //   const deleteCourseOptions = {
-  //     method: 'DELETE',
-  //     uri: `${protocol}${rootURL}/api/v1/courses/${courseID}`,
-  //     headers: { Authorization: `Bearer ${authToken}` },
-  //     formData: { event: 'delete' },
-  //     json: true,
-  //   };
-  //   await request(deleteCourseOptions);
-  // });
+  after(async () => {
+    const deleteCourseOptions = {
+      method: 'DELETE',
+      uri: `${protocol}${rootURL}/api/v1/courses/${courseID}`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      formData: { event: 'delete' },
+      json: true,
+    };
+    await request(deleteCourseOptions);
+  });
 });

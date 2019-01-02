@@ -1,6 +1,4 @@
 /* eslint-disable */
-const request = require('request-promise');
-const Promise = require('bluebird');
 const path = require('path');
 const _ = require('lodash');
 const log = require('electron-log');
@@ -144,23 +142,6 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
   return { updatedModulesFiles, courseWithModulesFiles };
 };
 
-const hasAccessToFilesAPI = async (authToken, rootURL, courseID) => {
-  const options = {
-    method: 'GET',
-    uri: `https://${rootURL}/api/v1/courses/${courseID}/files?sort=updated_at&order=desc`,
-    headers: { Authorization: `Bearer ${authToken}` },
-    json: true,
-    encoding: null,
-  };
-  try {
-    await request(options);
-    return true;
-  } catch (err) {
-      return false;
-  }
-};
-
-
 //Right now this will only get 100 folders may want to add recursion into this as well
 const getFolders = async (authToken, folderURL, currentPath) => {
   const foldersResponse = await apis.list200Items(authToken, folderURL);
@@ -224,8 +205,8 @@ const getNewOrUpdatedFiles = async (authToken, filesURL, currentPath, lastSynced
         }
     }));
   } catch (err) {
-    console.error(err);
-    console.log('Problem getting new or updated files');
+    log.error(err);
+    log.error('Problem getting new or updated files');
     return [];
   }
 };
@@ -279,7 +260,6 @@ const getAllNewOrUpdatedFiles = async (authToken, course, lastSynced) => {
     return files;
   } catch (error) {
     log.error('problem getting new files');
-    // console.error(error);
   }
 }
 
@@ -341,7 +321,6 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
   try {
     const filesLastUpdated = await apis.getLatestFile(authToken, rootURL, courseID);
 
-    // theoretically this works, but it is not yet tested all the way through
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
       log.info('new file');
       return true;
@@ -357,7 +336,6 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
 export default {
   getCourses,
   getCourseFilesANDFoldersURLS,
-  hasAccessToFilesAPI,
   getCourseFilesAndFolders,
   getNewFolders,
   hasNewFile,
