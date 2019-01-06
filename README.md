@@ -27,7 +27,12 @@ Clone this repository and run `yarn`. Once it's done installing the modules, run
 
 Releases are being code signed so your personal build will not work with the built in autoupdating.
 
+## Contributing
+
+I'd appreciate any help that anyone would like to give and have included draw.io diagrams in the diagrams folder to help facilitate understanding of the overall flow. 
+
 ## TODO
-- [x] Toggle courses/folders to sync
+- [x] Toggle courses to sync
 - [x] Increase initial download speed
-- [ ] Handle situations more gracefully where an update has occurred both locally and remotely
+- [x] Handle situations more gracefully where an update has occurred both locally and remotely
+- [ ] Allow more granular control of what to sync(Treeview)
