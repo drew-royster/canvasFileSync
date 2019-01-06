@@ -1,4 +1,3 @@
-
 import apis from './apis';
 const path = require('path');
 const _ = require('lodash');
@@ -51,6 +50,26 @@ const getCourses = async (
     log.error(error);
     return { success: false, message: error.message };
   }
+};
+
+const buildCourseMap = async (
+  authToken,
+  rootURL,
+  course,
+) => {
+  // get modules and module files if that tab is available
+  if (course.hasModulesTab) {
+    course.modules = await getModules(authToken, rootURL, course);
+    const filesRaw = await getModulesFiles(authToken, course.modules, course);
+    course.files = course.files.concat(_.flatten(filesRaw));
+  }
+  // get files and folders if files tab is available
+  if (course.hasFilesTab) {
+    const { files, folders } = await getCourseFilesAndFolders(authToken, course);
+    course.files.push(...files);
+    course.folders = folders;
+  }
+  return course;
 };
 
 const getModules = async (authToken, rootURL, course) => {
@@ -344,11 +363,12 @@ export default {
   getCourseFilesANDFoldersURLS,
   getCourseFilesAndFolders,
   getNewFolders,
-  hasNewFile,
-  findAllFolders,
-  findAllFiles,
   getAllNewOrUpdatedFiles,
   getModules,
   getModulesFiles,
   getUpdatedModulesFiles,
+  hasNewFile,
+  findAllFolders,
+  findAllFiles,
+  buildCourseMap,
 };

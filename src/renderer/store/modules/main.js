@@ -109,22 +109,9 @@ const actions = {
               resolve();
             } else {
               response.response.forEach(async (course) => {
-                // get modules and module files if that tab is available
-                if (course.hasModulesTab) {
-                  course.modules = await canvasIntegration.getModules(state.authToken,
-                    state.rootURL, course);
-                  const filesRaw = await canvasIntegration.getModulesFiles(state.authToken,
-                    course.modules, course);
-                  course.files = course.files.concat(_.flatten(filesRaw));
-                }
-                // get files and folders if files tab is available
-                if (course.hasFilesTab) {
-                  const { files, folders } = await canvasIntegration.getCourseFilesAndFolders(
-                    state.authToken, course);
-                  course.files.push(...files);
-                  course.folders = folders;
-                }
-                commit('ADD_COURSE', course);
+                const builtCourse = await canvasIntegration.buildCourseMap(
+                  state.authToken, state.rootURL, course);
+                commit('ADD_COURSE', builtCourse);
                 coursesAdded += 1;
                 if (coursesAdded === response.response.length) {
                   commit('ADDED_ALL_COURSES');
