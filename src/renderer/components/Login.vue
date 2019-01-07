@@ -44,14 +44,10 @@
               if ('visible_token' in JSON.parse(response)) {
                 capturedAuthToken = true;
                 clearTimeout(getToken);
+                log.info({ token: JSON.parse(response).visible_token });
                 this.$store.commit('SET_AUTH_TOKEN', JSON.parse(response).visible_token);
-                this.$store.dispatch('connect').then(async () => {
-                  const syncableCourses = await this.$store.getters.syncableCourses;
-                  if (syncableCourses.length > 0) {
-                    this.$router.push('/configure');
-                  } else {
-                    this.$store.dispatch('goErrorPage', { message: 'Hey buddy! You don\'t have any courses to sync. Give this app another try when you have courses to sync' });
-                  }
+                this.$store.dispatch('connect').then(() => {
+                  this.$router.push('/configure');
                 });
               }
             })

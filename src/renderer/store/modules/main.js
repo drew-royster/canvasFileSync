@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron'; // eslint-disable-line
+import log from 'electron-log';
 import router from '../../router/index';
 const canvasIntegrationFile = require('../../../utils/canvasIntegration');
 const appVersion = require('../../../../package').version;
@@ -15,7 +16,7 @@ const state = {
   version: appVersion,
   courses: [],
   conflicts: [],
-  gotAllCourses: false,
+  hasNewCourses: false,
   lastSynced: null,
   error: null,
 };
@@ -29,7 +30,7 @@ const mutations = {
     state.version = appVersion;
     state.courses = [];
     state.conflicts = [];
-    state.gotAllCourses = false;
+    state.hasNewCourses = false;
     state.lastSynced = false;
     state.error = false;
   },
@@ -58,6 +59,9 @@ const mutations = {
   SET_SYNC_FREQUENCY(state, payload) {
     state.syncFrequency = payload;
   },
+  SET_HAS_NEW_COURSES(state, payload) {
+    state.hasNewCourses = payload;
+  },
   ADD_COURSE(state, payload) {
     const index = _.findIndex(state.courses, { id: payload.id });
     if (index >= 0) {
@@ -76,9 +80,6 @@ const mutations = {
       { filePath: payload.filePath });
     state.courses[courseIndex].files[fileIndex].lastUpdated = Date.now();
   },
-  ADDED_ALL_COURSES(state) {
-    state.gotAllCourses = true;
-  },
   SYNCED(state) {
     state.lastSynced = Date.now();
   },
@@ -95,26 +96,33 @@ const mutations = {
 
 const actions = {
   toggleSyncCourse({ commit }, payload) {
-    commit('TOGGLE_SYNC_COURSE', payload);
+    return new Promise((resolve) => {
+      commit('TOGGLE_SYNC_COURSE', payload);
+      resolve();
+    });
   },
   connect({ commit }) {
     return new Promise((resolve, reject) => {
       try {
+        log.info('attempting to connect');
+        router.push('./loading');
         canvasIntegration.getCourses(
           state.authToken, state.rootURL).then((response) => {
           let coursesAdded = 0;
           if (response.success) {
             if (response.response.length === 0) {
-              commit('ADDED_ALL_COURSES');
+              router.push('./configure');
               resolve();
             } else {
               response.response.forEach(async (course) => {
                 const builtCourse = await canvasIntegration.buildCourseMap(
                   state.authToken, state.rootURL, course);
                 commit('ADD_COURSE', builtCourse);
+                log.info(builtCourse);
                 coursesAdded += 1;
                 if (coursesAdded === response.response.length) {
-                  commit('ADDED_ALL_COURSES');
+                  log.info('going to configure');
+                  router.push('./configure');
                   resolve();
                 }
               });
@@ -171,13 +179,25 @@ const actions = {
     router.push(`./login/${payload.rootURL}`);
   },
   isConnected() {
-    return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve) => {
       if (await dataStorage.isConnected()) {
-        resolve();
+        resolve(true);
       } else {
-        reject();
+        resolve(false);
       }
     });
+  },
+  hasNewCourses() {
+    return new Promise(async (resolve) => {
+      if (await dataStorage.getHasNewCourses()) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+  },
+  setHasNewCourses({ commit }, status) {
+    commit('SET_HAS_NEW_COURSES', status);
   },
   clearStateGoLogin({ commit }) {
     commit('RESET_STATE');
@@ -213,9 +233,6 @@ const getters = {
   },
   syncableCourses(state) {
     return Promise.all(_.filter(state.courses, course => course.sync));
-  },
-  gotAllCourses(state) {
-    return state.gotAllCourses;
   },
   rootFolder(state) {
     return state.rootFolder;

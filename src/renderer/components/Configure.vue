@@ -2,19 +2,7 @@
   <v-content>
     <v-layout justify-center align-center row>
       <v-flex xs12 sm10>
-        <v-layout v-if="!gotAllCourses" justify-center align-center>
-          <v-progress-circular
-            :size="400"
-            :width="30"
-            indeterminate
-            color="#F79520"
-          >
-            <h1>
-              Getting courses from Canvas
-            </h1>
-          </v-progress-circular>  
-        </v-layout>
-        <v-stepper v-else v-model="step" vertical>        
+        <v-stepper v-model="step" vertical>        
           <v-stepper-step editable :complete="step > 1" step="1">What will sync?</v-stepper-step>
           <v-stepper-items>
             <v-stepper-content step="1">
@@ -54,7 +42,7 @@
                       <v-list-tile-title v-else>
                         {{ course.name }} - <v-tooltip bottom>
                           <span slot="activator"><i>Disabled</i></span>
-                          <span>Courses using modules not currently syncable</span>
+                          <span>Click on the icon to enable course</span>
                         </v-tooltip>
                       </v-list-tile-title>
                       </v-list-tile-content>
@@ -148,7 +136,7 @@
 </template>
 
 <script>
-  const log = require('electron-log');
+  import log from 'electron-log';
   export default {
     name: 'configure',
     data() {
@@ -157,31 +145,29 @@
         syncFrequency: 5,
         folder: 'Choose Folder',
         folderChosen: false,
+        courses: [],
       };
-    },
-    computed: {
-      courses() {
-        return this.$store.getters.courses;
-      },
-      gotAllCourses() {
-        return this.$store.getters.gotAllCourses;
-      },
     },
     methods: {
       toggleSync(courseID) {
-        log.info(courseID);
-        this.$store.dispatch('toggleSyncCourse', { courseID });
+        this.$store.dispatch('toggleSyncCourse', { courseID }).then(() => {
+          this.courses = this.$store.getters.courses;
+          this.$forceUpdate();
+        });
       },
       chooseFolder() {
         this.$electron.ipcRenderer.send('choose-folder');
       },
       beginSync() {
         if (this.folderChosen && this.$refs.syncFrequency.validate(true)) {
+          this.$store.dispatch('setHasNewCourses', false);
           this.$store.dispatch('beginInitialSync', { rootFolder: this.folder, syncFrequency: this.syncFrequency });
         }
       },
     },
     mounted() {
+      log.info('in configure');
+      this.courses = this.$store.getters.courses;
       this.$electron.ipcRenderer.on('chose-folder', (event, data) => {
         if (data !== 'No folder chosen') {
           this.folderChosen = true;

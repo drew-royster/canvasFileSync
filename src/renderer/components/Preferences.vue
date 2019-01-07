@@ -253,9 +253,7 @@ export default {
     },
     rebuild() {
       this.loadingRebuild = true;
-      this.$store.dispatch('connect').then(() => {
-        this.$router.push('/configure');
-      });
+      this.$store.dispatch('connect');
     },
     updateSyncFrequency() {
       if (this.$refs.localSyncFrequency.validate(true)) {

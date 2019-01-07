@@ -21,8 +21,6 @@ autoUpdater.autoDownload = true;
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 
-log.info('started main process');
-
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
@@ -87,7 +85,7 @@ const syncingMenu = [
     enabled: false,
   },
   {
-    label: 'Preferences',
+    label: 'Open',
     enabled: true,
     click() {
       if (mainWindow === null) {
@@ -118,7 +116,7 @@ const getUpdatedConnectedMenu = (lastSynced) => {
       },
     },
     {
-      label: 'Preferences',
+      label: 'Open',
       enabled: true,
       click() {
         if (mainWindow === null) {
@@ -364,85 +362,133 @@ const sync = async (lastSynced) => {
     syncing = true;
     updateMenu(syncingMenu);
     let allConflictFiles = [];
-    const courses = await dataStorage.getSyncableCourses();
+    const allCourses = await dataStorage.getCourses();
     const authToken = await dataStorage.getAuthToken();
     const rootURL = await dataStorage.getRootURL();
     const rootFolder = await dataStorage.getRootFolder();
-    const updatedCourses = await Promise.all(_.map(courses, async (course) => {
-      let currentCourse = course;
-      let allNewFolders = [];
-      let allNewFiles = [];
-      // getting any new modules - adding them to courses object
-      const { courseWithNewModules, newModules, hasUpdates } = await getNewModules(authToken,
-        rootURL, course);
-      log.info(newModules);
-      // log.info(`Course: ${course.name} has updates: ${hasUpdates}`);
-      if (hasUpdates) {
-        allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
-          return newModule.modulePath;
+    const { hasUpdates,
+      newCourses,
+      removedCourseIDs } = await checkForNewAndRemovedCourses(authToken, rootURL, allCourses);
+    let updatedCourses = _.cloneDeep(allCourses);
+    if (hasUpdates) {
+      log.info('has course updates');
+      if (newCourses.length > 0) {
+        await dataStorage.setHasNewCourses(true);
+        const newBuiltCourses = await Promise.all(_.map(newCourses, async (course) => {
+          const builtCourse = await canvasIntegration
+            .buildCourseMap(authToken, rootURL, course);
+          builtCourse.sync = false;
+          return builtCourse;
         }));
-        const { updatedModulesFiles, courseWithModulesFiles } = await canvasIntegration
-          .getUpdatedModulesFiles(authToken, newModules, courseWithNewModules, lastSynced);
-        allNewFiles = allNewFiles.concat(_.flatten(updatedModulesFiles));
-        currentCourse = courseWithModulesFiles;
+        updatedCourses.push(...newBuiltCourses);
+        // log.info(updatedCourses);
       }
-      // getting new folders
-      const { courseWithNewFolders, newFolders } = await getNewFolders(authToken,
-        rootURL, currentCourse, lastSynced);
-      currentCourse = courseWithNewFolders;
-      allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
-        return path.join(rootFolder, newFolder.folderPath);
-      })));
-      log.info('new folders');
-      // create folders from both the modules view and from the files view
-      await createFolders(allNewFolders);
-      if (course.hasFilesTab) {
-        // get new or updated files from files view
-        const { courseWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
+      if (removedCourseIDs.length > 0) {
+        await Promise.all(_.remove(updatedCourses), async (course) => {
+          return removedCourseIDs.includes(course.id);
+        });
+        // log.info('courses');
+        // log.info(updatedCourses);
+      }
+    } else {
+      log.info('no updates to courses');
+      const syncableCourses = await dataStorage.getSyncableCourses();
+      updatedCourses = await Promise.all(_.map(syncableCourses, async (course) => {
+        let currentCourse = course;
+        let allNewFolders = [];
+        let allNewFiles = [];
+        // getting any new modules - adding them to courses object
+        const { courseWithNewModules, newModules, hasUpdates } = await getNewModules(authToken,
+          rootURL, course);
+        log.info(newModules);
+        // log.info(`Course: ${course.name} has updates: ${hasUpdates}`);
+        if (hasUpdates) {
+          allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
+            return newModule.modulePath;
+          }));
+          const { updatedModulesFiles, courseWithModulesFiles } = await canvasIntegration
+            .getUpdatedModulesFiles(authToken, newModules, courseWithNewModules, lastSynced);
+          allNewFiles = allNewFiles.concat(_.flatten(updatedModulesFiles));
+          currentCourse = courseWithModulesFiles;
+        }
+        // getting new folders
+        const { courseWithNewFolders, newFolders } = await getNewFolders(authToken,
           rootURL, currentCourse, lastSynced);
-        allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
-        currentCourse = courseWithNewFilesAndFolders;
-      }
-      // get conflicting files to store them in separate place
-      const conflictFiles = _.filter(allNewFiles, (newFile) => {
-        try {
-          const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
-          console.log(lastModifiedByUser);
-          const currentCourseFile = _.find(course.files, (courseFile) => {
-            return courseFile.filePath === newFile.filePath;
-          });
-          return lastModifiedByUser > currentCourseFile.lastUpdated;
-        } catch (err) {
-          return false;
+        currentCourse = courseWithNewFolders;
+        allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
+          return path.join(rootFolder, newFolder.folderPath);
+        })));
+        log.info('new folders');
+        // create folders from both the modules view and from the files view
+        await createFolders(allNewFolders);
+        if (course.hasFilesTab) {
+          // get new or updated files from files view
+          const { courseWithNewFilesAndFolders, newOrUpdatedFiles } = await getNewFiles(authToken,
+            rootURL, currentCourse, lastSynced);
+          allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
+          currentCourse = courseWithNewFilesAndFolders;
         }
-      });
-      allConflictFiles = allConflictFiles.concat(conflictFiles);
-      // get safe files to be downloaded
-      const safeFiles = _.filter(allNewFiles, (newFile) => {
-        try {
-          const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
-          const currentCourseFile = _.find(course.files, (courseFile) => {
-            return courseFile.filePath === newFile.filePath;
-          });
-          return lastModifiedByUser < currentCourseFile.lastUpdated;
-        } catch (err) {
-          return true;
-        }
-      });
-
-      const downloadedFiles = await syncDownloadFiles(safeFiles, rootFolder);
-      await Promise.all(_.forEach(downloadedFiles, async (file) => {
-        const fileIndex = _.findIndex(currentCourse.files,
-          { filePath: file.filePath });
-        currentCourse.files[fileIndex].lastUpdated = Date.now();
+        log.info(allNewFiles);
+        // get conflicting files to store them in separate place
+        const conflictFiles = _.filter(allNewFiles, (newFile) => {
+          try {
+            const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
+            const currentCourseFile = _.find(course.files, (courseFile) => {
+              return courseFile.filePath === newFile.filePath;
+            });
+            return lastModifiedByUser > currentCourseFile.lastUpdated;
+          } catch (err) {
+            return false;
+          }
+        });
+        allConflictFiles = allConflictFiles.concat(conflictFiles);
+        log.info(allConflictFiles);
+        // get safe files to be downloaded
+        const safeFiles = _.filter(allNewFiles, (newFile) => {
+          try {
+            const lastModifiedByUser = fs.statSync(path.join(rootFolder, newFile.filePath)).mtimeMs;
+            const currentCourseFile = _.find(course.files, (courseFile) => {
+              return courseFile.filePath === newFile.filePath;
+            });
+            return lastModifiedByUser < currentCourseFile.lastUpdated;
+          } catch (err) {
+            return true;
+          }
+        });
+        const downloadedFiles = await syncDownloadFiles(safeFiles, rootFolder);
+        await Promise.all(_.forEach(downloadedFiles, async (file) => {
+          const fileIndex = _.findIndex(currentCourse.files,
+            { filePath: file.filePath });
+          currentCourse.files[fileIndex].lastUpdated = Date.now();
+        }));
+        return currentCourse;
       }));
-      return currentCourse;
-    }));
+    }
     await dataStorage.addConflicts(allConflictFiles);
     await dataStorage.updateCourses(updatedCourses);
     await dataStorage.updateLastSynced();
     syncing = false;
     updateMenu(getUpdatedConnectedMenu(await dataStorage.getLastSynced()));
+    if (allConflictFiles.length > 1) {
+      const newConflicts = new Notification({ title: 'Conflict', body: 'Your teacher edited files that you have also edited. Click here' });
+      newConflicts.show();
+      newConflicts.on('click', () => {
+        createWindow();
+      });
+    } else if (allConflictFiles.length > 0) {
+      const newConflicts = new Notification({ title: 'Conflict', body: 'Your teacher edited a file that you have also edited. Click here' });
+      newConflicts.show();
+      newConflicts.on('click', () => {
+        createWindow();
+      });
+    }
+    if (await dataStorage.getHasNewCourses()) {
+      const newCourses = new Notification({ title: 'New courses available', body: 'Click to choose which you want to sync' });
+      newCourses.show();
+      newCourses.on('click', () => {
+        createWindow();
+      });
+    }
   } catch (err) {
     log.error(pe.render(err));
   }
@@ -543,6 +589,36 @@ const getNewModules = async (authToken, rootURL, course) => {
     log.error('Error getting new modules');
     log.error(pe.render(err));
     return { courseWithNewModules, newModules, hasUpdates };
+  }
+};
+
+// checks for new courses/removed courses. Returns { hasUpdates, newCourseIDs, removedCourseIDs }
+const checkForNewAndRemovedCourses = async (authToken, rootURL, courses) => {
+  try {
+    const currentCourseIDs = await _.map(courses, 'id');
+    const coursesFromCanvas = await canvasIntegration.getCourses(authToken, rootURL);
+    const courseIDsFromCanvas = await _.map(coursesFromCanvas.response, 'id');
+    const newCourseIDs = await _.difference(courseIDsFromCanvas, currentCourseIDs);
+    const removedCourseIDs = await _.difference(currentCourseIDs, courseIDsFromCanvas);
+    const newCourses = [];
+    await Promise.all(_.forEach(coursesFromCanvas.response, (course) => {
+      if (newCourseIDs.includes(course.id)) {
+        newCourses.push(course);
+      }
+    }));
+    if (newCourseIDs.length === 0 && removedCourseIDs.length === 0) {
+      return { hasUpdates: false,
+        newCourses,
+        removedCourseIDs };
+    }
+    return { hasUpdates: true,
+      newCourses,
+      removedCourseIDs };
+  } catch (err) {
+    log.error(pe.render(err));
+    return { hasUpdates: false,
+      newCourses: [],
+      removedCourseIDs: [] };
   }
 };
 

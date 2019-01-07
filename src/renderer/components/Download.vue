@@ -69,9 +69,6 @@ export default {
     rootFolder() {
       return this.$store.getters.rootFolder;
     },
-    gotAllCourses() {
-      return this.$store.getters.gotAllCourses;
-    },
     authToken() {
       return this.$store.getters.authToken;
     },

@@ -64,6 +64,14 @@ const updateLastSynced = async () => {
   return store.set('lastSynced', Date.now());
 };
 
+const setHasNewCourses = async (status) => {
+  return store.set('hasNewCourses', status);
+};
+
+const getHasNewCourses = async () => {
+  return store.get('hasNewCourses');
+};
+
 const updateCourses = async (updatedCourses) => {
   return store.set('courses', updatedCourses);
 };
@@ -127,6 +135,8 @@ export default {
   getSavedState,
   wipeState,
   getCourses,
+  setHasNewCourses,
+  getHasNewCourses,
   getSyncableCourses,
   getLastSynced,
   getAuthToken,

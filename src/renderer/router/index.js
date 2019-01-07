@@ -12,11 +12,17 @@ export default new Router({
       component: require('@/components/Preferences').default,
       beforeEnter: (to, from, next) => {
         store.dispatch('isConnected')
-          .then(() => {
-            next();
-          })
-          .catch(() => {
-            next('/home');
+          .then(async (isConnected) => {
+            if (isConnected) {
+              const hasNewCourses = await store.dispatch('hasNewCourses');
+              if (hasNewCourses) {
+                store.dispatch('loadSavedState').then(next('/configure'));
+              } else {
+                next();
+              }
+            } else {
+              next('/home');
+            }
           });
       },
     },
@@ -45,6 +51,11 @@ export default new Router({
       path: '/configure',
       name: 'Configure',
       component: require('@/components/Configure').default,
+    },
+    {
+      path: '/loading',
+      name: 'Loading',
+      component: require('@/components/Loading').default,
     },
     {
       path: '/download',

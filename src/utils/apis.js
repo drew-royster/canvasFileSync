@@ -2,7 +2,7 @@ const log = require('electron-log');
 const request = require('request-promise');
 
 let protocol;
-
+// const protocol = 'https://';
 if (process.env.NODE_ENV === 'production') {
   protocol = 'https://';
 } else {
