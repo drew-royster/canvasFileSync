@@ -1,14 +1,6 @@
 const log = require('electron-log');
 const request = require('request-promise');
 
-let protocol;
-// const protocol = 'https://';
-if (process.env.NODE_ENV === 'production') {
-  protocol = 'https://';
-} else {
-  protocol = 'http://';
-}
-
 const listActiveCanvasCourses = (
   authToken,
   rootURL,
@@ -17,7 +9,7 @@ const listActiveCanvasCourses = (
     try {
       const options = {
         method: 'GET',
-        uri: `${protocol}${rootURL}/api/v1/users/self/courses?enrollment_state=active`,
+        uri: `${rootURL}/api/v1/users/self/courses?enrollment_state=active`,
         headers: { Authorization: `Bearer ${authToken}` },
         json: true,
         encoding: null,
@@ -33,7 +25,7 @@ const listActiveCanvasCourses = (
 const listModules = async (authToken, rootURL, course) => {
   const options = {
     method: 'GET',
-    uri: `${protocol}${rootURL}/api/v1/courses/${course.id}/modules?per_page=100`,
+    uri: `${rootURL}/api/v1/courses/${course.id}/modules?per_page=100`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -77,7 +69,7 @@ const getModuleFileDetails = async (authToken, fileModuleURL) => {
 const getCourseRootFolder = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
-    uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/folders/root`,
+    uri: `${rootURL}/api/v1/courses/${courseID}/folders/root`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -88,7 +80,7 @@ const getCourseRootFolder = async (authToken, rootURL, courseID) => {
 const listFoldersByUpdatedAt = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
-    uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/folders?sort=updated_at&order=desc&per_page=200`,
+    uri: `${rootURL}/api/v1/courses/${courseID}/folders?sort=updated_at&order=desc&per_page=200`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -110,7 +102,7 @@ const list200FilesByUpdatedAt = async (authToken, filesURL) => {
 const getLatestFile = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
-    uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/files?per_page=1&sort=updated_at&order=desc`,
+    uri: `${rootURL}/api/v1/courses/${courseID}/files?per_page=1&sort=updated_at&order=desc`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,
@@ -121,7 +113,7 @@ const getLatestFile = async (authToken, rootURL, courseID) => {
 const listCourseTabs = async (authToken, rootURL, courseID) => {
   const options = {
     method: 'GET',
-    uri: `${protocol}${rootURL}/api/v1/courses/${courseID}/tabs`,
+    uri: `${rootURL}/api/v1/courses/${courseID}/tabs`,
     headers: { Authorization: `Bearer ${authToken}` },
     json: true,
     encoding: null,

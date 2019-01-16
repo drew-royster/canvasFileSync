@@ -43,9 +43,9 @@ const wipeState = async () => {
 const isConnected = async () => {
   try {
     if (
-      store.get('rootFolder') !== undefined &&
-      store.get('rootURL') !== undefined &&
-      store.get('authToken') !== undefined
+      store.get('rootFolder') &&
+      store.get('rootURL') &&
+      store.get('authToken') 
     ) {
       return true;
     }

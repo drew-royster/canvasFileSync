@@ -166,6 +166,7 @@ app.on('ready', async () => {
   });
 
   if (await dataStorage.isConnected()) {
+    log.info('connected');
     if (await dataStorage.hasCheckedModules()) {
       log.info('we already have modules');
     } else {
@@ -236,6 +237,7 @@ const downloadFiles = async (event, files) => {
 
       event.sender.send('update-progress', completionPercentage);
     } catch (error) {
+      log.error(file);
       failedDownloads += 1;
       console.error(JSON.stringify({
         error,
@@ -243,9 +245,10 @@ const downloadFiles = async (event, files) => {
         filesDownloaded,
       }, null, 2));
     }
-  }, { concurrency: 10 });
+  }, { concurrency: 20 });
 
   const report = { filesDownloaded, failedDownloads };
+  log.info({ report });
 
   event.sender.send('download-report', report);
 };
@@ -400,7 +403,7 @@ const sync = async (lastSynced) => {
         // getting any new modules - adding them to courses object
         const { courseWithNewModules, newModules, hasUpdates } = await getNewModules(authToken,
           rootURL, course);
-        log.info(newModules);
+        log.info({ newModules });
         // log.info(`Course: ${course.name} has updates: ${hasUpdates}`);
         if (hasUpdates) {
           allNewFolders = allNewFolders.concat(_.map(newModules, (newModule) => {
@@ -414,11 +417,12 @@ const sync = async (lastSynced) => {
         // getting new folders
         const { courseWithNewFolders, newFolders } = await getNewFolders(authToken,
           rootURL, currentCourse, lastSynced);
+        // log.info({ newFolders });
         currentCourse = courseWithNewFolders;
         allNewFolders = allNewFolders.concat(_.flatten(_.map(newFolders, (newFolder) => {
           return path.join(rootFolder, newFolder.folderPath);
         })));
-        log.info('new folders');
+        // log.info({ allNewFolders });
         // create folders from both the modules view and from the files view
         await createFolders(allNewFolders);
         if (course.hasFilesTab) {
@@ -428,7 +432,8 @@ const sync = async (lastSynced) => {
           allNewFiles = allNewFiles.concat(newOrUpdatedFiles);
           currentCourse = courseWithNewFilesAndFolders;
         }
-        log.info(allNewFiles);
+        // log new files, but only if they exist
+        if (allNewFiles.length > 0) log.info({ allNewFiles });
         // get conflicting files to store them in separate place
         const conflictFiles = _.filter(allNewFiles, (newFile) => {
           try {
@@ -442,7 +447,9 @@ const sync = async (lastSynced) => {
           }
         });
         allConflictFiles = allConflictFiles.concat(conflictFiles);
-        log.info(allConflictFiles);
+
+        // log conflicting files, but only if they exist
+        if (conflictFiles.length > 0) log.info({ allConflictFiles });
         // get safe files to be downloaded
         const safeFiles = _.filter(allNewFiles, (newFile) => {
           try {
@@ -629,6 +636,7 @@ const createFolders = async (folders) => {
         await fs.accessSync(folder, fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
+        log.error(err);
         return fs.mkdirSync(folder);
       }
     }));

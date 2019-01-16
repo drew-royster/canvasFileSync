@@ -1,3 +1,4 @@
+import is from 'electron-is';
 import apis from './apis';
 const path = require('path');
 const _ = require('lodash');
@@ -31,7 +32,7 @@ const getCourses = async (
         hasModulesTab,
         hasFilesTab,
         sync: true,
-        name: filenamify(activeCourse.name.split('|')[0].trim(), { replacement: '-' }),
+        name: await makeFilenameSafe(activeCourse.name),
         modules: [],
         folder: true,
         files: [],
@@ -75,7 +76,7 @@ const buildCourseMap = async (
 const getModules = async (authToken, rootURL, course) => {
   const modulesRaw = await apis.listModules(authToken, rootURL, course);
   return Promise.all(_.map(modulesRaw, async (courseModule) => {
-    const cleanName = filenamify(courseModule.name, { replacement: '-' });
+    const cleanName = await makeFilenameSafe(courseModule.name);
     return {
       name: cleanName,
       modulePath: path.join(course.name, cleanName),
@@ -98,8 +99,8 @@ const getModulesFiles = async (authToken, modules, course) => {
     // parse file information into something usable
     const files = await Promise.all(_.map(filesRaw, async (fileRaw) => {
       const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-      const cleanName = filenamify(courseModule.name, { replacement: '-' });
-      const filename = filenamify(filenameDecoded, { replacement: '-' });
+      const cleanName = await makeFilenameSafe(courseModule.name);
+      const filename = await makeFilenameSafe(filenameDecoded);
       const filePath = path.join(course.name, cleanName, filename);
       const file = {
         name: filename,
@@ -132,11 +133,10 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
     }));
     // parse file information into something usable
     await Promise.all(_.map(filesRaw, async (fileRaw) => {
-      // log.info('updated file');
       const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-      const cleanName = filenamify(courseModule.name, { replacement: '-' });
-      const filename = filenamify(filenameDecoded, { replacement: '-' });
-      const filePath = path.join(course.name, cleanName, filename);
+      const cleanName = await makeFilenameSafe(courseModule.name);
+      const filename = await makeFilenameSafe(filenameDecoded);
+      const filePath = await path.join(course.name, cleanName, filename);
       const file = {
         name: filename,
         url: fileRaw.url,
@@ -166,9 +166,9 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
 const getFolders = async (authToken, folderURL, currentPath) => {
   const foldersResponse = await apis.list200Items(authToken, folderURL);
   return Promise.all(_.map(foldersResponse, async (folder) => {
-    const folderPath = path.join(currentPath, folder.name);
+    const folderPath = path.join(currentPath, await makeFilenameSafe(folder.name));
     return {
-      name: folder.name,
+      name: await makeFilenameSafe(folder.name),
       lastUpdated: folder.updated_at,
       folder: true,
       folders_count: folder.folders_count,
@@ -310,29 +310,28 @@ const getCourseFilesAndFolders = async (authToken, course) => {
 const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
   const newFolders = [];
   try {
-    const foldersLastUpdated = await apis.listFoldersByUpdatedAt(authToken, rootURL, course.id);
-    // parse information add to new folders if more recent than the last time synced
-    _.forEach(foldersLastUpdated, (folderRaw) => {
-      if (folderRaw.full_name !== 'course files') {
-        const parseFullName = folderRaw.full_name.replace('course files', '');
-        const folderPath = path.join(course.name, parseFullName);
-        const folder = {
-          name: folderRaw.name,
-          lastUpdated: folderRaw.updated_at,
-          folder: true,
-          folders_count: folderRaw.folders_count,
-          folders_url: folderRaw.folders_url,
-          files_count: folderRaw.files_count,
-          files_url: folderRaw.files_url,
-          sync: true,
-          id: folderRaw.id,
-          folderPath,
-        };
-        if (new Date(folder.lastUpdated) > new Date(lastSynced)) {
-          newFolders.push(folder);
-        }
-      }
-    });
+    const folders = await apis.listFoldersByUpdatedAt(authToken, rootURL, course.id);
+    const newFoldersRaw = await Promise.all(_.filter(folders, (folder) => {
+      return (new Date(folder.updated_at) > new Date(lastSynced));
+    }));
+    const newFolders = await Promise.all(_.map(newFoldersRaw, async (folder) => {
+      const parseFullName = folder.full_name.replace('course files/', '');
+      await log.info({ parseFullName });
+      const cleanedPath = await makeFoldernameSafe(parseFullName);
+      const folderPath = path.join(course.name, cleanedPath);
+      return {
+        name: await makeFilenameSafe(folder.name),
+        lastUpdated: folder.updated_at,
+        folder: true,
+        folders_count: folder.folders_count,
+        folders_url: folder.folders_url,
+        files_count: folder.files_count,
+        files_url: folder.files_url,
+        sync: true,
+        id: folder.id,
+        folderPath,
+      };
+    }));
     return newFolders;
   } catch (err) {
     log.error(err);
@@ -358,6 +357,33 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
   }
 };
 
+const makeFilenameSafe = async (rawName) => {
+  const trimmedName = rawName.split('|')[0].trim();
+  const safeFilename = filenamify(trimmedName, { replacement: '-' });
+  return safeFilename;
+};
+
+const makeFoldernameSafe = async (rawFolderName) => {
+  try {
+    let splitRaw;
+    if (await is.osx()) {
+      splitRaw = rawFolderName.split('/');
+    } else {
+      splitRaw = rawFolderName.split('\\');
+    }
+    const splitCleaned = await Promise.all(_.map(splitRaw, (name) => {
+      return makeFilenameSafe(name);
+    }));
+    if (await is.osx()) {
+      return path.join(splitCleaned.join('/'));
+    }
+    return path.join(splitCleaned.join('\\'));
+  } catch (err) {
+    log.error(err);
+    return path.join(rawFolderName);
+  }
+};
+
 export default {
   getCourses,
   getCourseFilesANDFoldersURLS,
@@ -371,4 +397,6 @@ export default {
   findAllFolders,
   findAllFiles,
   buildCourseMap,
+  makeFilenameSafe,
+  makeFoldernameSafe,
 };

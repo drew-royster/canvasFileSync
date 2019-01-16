@@ -7,6 +7,7 @@ const dataStorageFile = require('../../../utils/dataStorage');
 const canvasIntegration = canvasIntegrationFile.default;
 const dataStorage = dataStorageFile.default;
 const _ = require('lodash');
+const sslChecker = require('ssl-checker');
 
 const state = {
   authToken: null,
@@ -46,6 +47,9 @@ const mutations = {
   SET_CONNECTION_PARAMETERS(state, payload) {
     state.authToken = payload.authToken;
     state.rootURL = payload.rootURL;
+  },
+  ADD_PROTOCOL(state, payload) {
+    state.rootURL = `${payload}${state.rootURL}`;
   },
   SET_ROOT_FOLDER(state, payload) {
     state.rootFolder = payload;
@@ -102,17 +106,23 @@ const actions = {
     });
   },
   connect({ commit }) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async () => {
       try {
         log.info('attempting to connect');
         router.push('./loading');
-        canvasIntegration.getCourses(
+        // checking if uses ssl or not
+        const { valid } = await sslChecker(state.rootURL.split(':')[0]);
+        if (valid) {
+          commit('ADD_PROTOCOL', 'https://');
+        } else {
+          commit('ADD_PROTOCOL', 'http://');
+        }
+        return canvasIntegration.getCourses(
           state.authToken, state.rootURL).then((response) => {
           let coursesAdded = 0;
           if (response.success) {
             if (response.response.length === 0) {
               router.push('./configure');
-              resolve();
             } else {
               response.response.forEach(async (course) => {
                 const builtCourse = await canvasIntegration.buildCourseMap(
@@ -123,14 +133,14 @@ const actions = {
                 if (coursesAdded === response.response.length) {
                   log.info('going to configure');
                   router.push('./configure');
-                  resolve();
                 }
               });
             }
           }
         });
       } catch (err) {
-        reject('Problem getting courses');
+        log.error(err);
+        return 'Problem getting courses';
       }
     });
   },
