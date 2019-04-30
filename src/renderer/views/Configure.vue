@@ -1,138 +1,187 @@
 <template>
-  <v-content>
-    <v-layout justify-center align-center row>
-      <v-flex xs12 sm10>
-        <v-stepper v-model="step" vertical>        
-          <v-stepper-step editable :complete="step > 1" step="1">What will sync?</v-stepper-step>
-          <v-stepper-items>
-            <v-stepper-content step="1">
-              <v-card v-if="step == 1">
-                <v-layout row>
-                  <v-flex>
-                    <v-toolbar primary dark>
-                    <v-toolbar-title>Courses</v-toolbar-title>
-                    </v-toolbar>
-                    <v-list>
-                      <v-list-tile
-                      v-for="course in courses"
-                      :key="course.id"
-                      >
-                      <v-list-tile-action>
-                        <v-btn
-                          v-if="course.sync"
-                          icon
-                          @click="toggleSync(course.id)"
-                          :aria-label="`Disable ${course.name}`"
-                        >
-                          <v-icon v-if="course.sync" color="green">class</v-icon>
-                        </v-btn>
-                        <v-btn
-                          v-else
-                          icon
-                          @click="toggleSync(course.id)"
-                          :aria-label="`Enable ${course.name}`"
-                        >
-                          <v-icon color="red">class</v-icon>
-                        </v-btn>
-                      </v-list-tile-action>
-                      <v-list-tile-content>
-                      <v-list-tile-title v-if="course.sync">
-                        {{ course.name }}
-                      </v-list-tile-title>
-                      <v-list-tile-title v-else>
-                        {{ course.name }} - <v-tooltip bottom>
-                          <span slot="activator"><i>Disabled</i></span>
-                          <span>Click on the icon to enable course</span>
-                        </v-tooltip>
-                      </v-list-tile-title>
-                      </v-list-tile-content>
-                      </v-list-tile>
-                    </v-list>
-                  </v-flex>
-                </v-layout>
-              </v-card>
-              <v-btn
-                v-if="step == 1"
-                color="primary"
-                @click="step = 2"
-              >
-                Continue
-              </v-btn>
-              <v-btn
-                v-else
-                disabled
-                color="primary"
-                @click="step = 2"
-              >
-                Continue
-              </v-btn>
-            </v-stepper-content>
-      
-            <v-stepper-step editable :complete="step > 2" step="2">Where to sync it?</v-stepper-step>
-            <v-stepper-content step="2">
-              <v-layout row>
-                <v-flex mb-2 large>
-                  <v-btn v-if="step == 2" large @click="chooseFolder">{{ folder }}</v-btn>
-                </v-flex>
-              </v-layout>
+	<v-content>
+		<v-layout
+		 justify-center
+		 align-center
+		 row
+		>
+			<v-flex
+			 xs12
+			 sm10
+			>
+				<v-stepper
+				 v-model="step"
+				 vertical
+				>
+					<v-stepper-step
+					 editable
+					 :complete="step > 1"
+					 step="1"
+					>What will sync?</v-stepper-step>
+					<v-stepper-items>
+						<v-stepper-content step="1">
+							<v-card v-if="step == 1">
+								<v-layout row>
+									<v-flex>
+										<v-toolbar
+										 primary
+										 dark
+										>
+											<v-toolbar-title>Courses</v-toolbar-title>
+										</v-toolbar>
+										<v-list>
+											<v-list-tile
+											 v-for="course in courses"
+											 :key="course.id"
+											>
+												<v-list-tile-action>
+													<v-badge>
+														<span
+														 v-if="course.sync"
+														 slot="badge"
+														>{{ course.files.length }}</span>
+														<v-btn
+														 v-if="course.sync"
+														 icon
+														 @click="toggleSync(course.id)"
+														 :aria-label="`Disable ${course.name}`"
+														>
+															<v-icon
+															 v-if="course.sync"
+															 color="green"
+															>class</v-icon>
+														</v-btn>
+														<v-btn
+														 v-else
+														 icon
+														 @click="toggleSync(course.id)"
+														 :aria-label="`Enable ${course.name}`"
+														>
+															<v-icon color="red">class</v-icon>
+														</v-btn>
+													</v-badge>
+												</v-list-tile-action>
+												<v-list-tile-content>
+													<v-list-tile-title v-if="course.sync">
+														{{ course.name }} - {{ course.files.length }} files
+													</v-list-tile-title>
+													<v-list-tile-title v-else>
+														{{ course.name }} - <v-tooltip bottom>
+															<span slot="activator"><i>Disabled</i></span>
+															<span>Click on the icon to enable course</span>
+														</v-tooltip>
+													</v-list-tile-title>
+												</v-list-tile-content>
+											</v-list-tile>
+										</v-list>
+									</v-flex>
+								</v-layout>
+							</v-card>
+							<v-btn
+							 v-if="step == 1"
+							 color="primary"
+							 @click="step = 2"
+							>
+								Continue
+							</v-btn>
+							<v-btn
+							 v-else
+							 disabled
+							 color="primary"
+							 @click="step = 2"
+							>
+								Continue
+							</v-btn>
+						</v-stepper-content>
 
-              <v-btn
-                v-if="folderChosen && step == 2"
-                color="primary"
-                @click="step = 3"
-              >
-                Continue
-              </v-btn>
-              <v-btn
-                v-else
-                color="primary"
-                @click="step = 3"
-                disabled
-              >
-                Continue
-              </v-btn>
-            </v-stepper-content>
-            
-            <v-stepper-step editable step="3">How often?</v-stepper-step>
-            <v-stepper-content step="3">
-              <v-layout column pl-2>
-                <v-layout row>
-                  <v-flex>
-                    <h1>Sync every</h1>
-                  </v-flex>
-                </v-layout>
-                <v-layout align-baseline row>
-                  <v-flex xs1>
-                    <v-text-field
-                      v-if="step == 3"
-                      v-model="syncFrequency"
-                      :rules="[() => parseInt(syncFrequency) > 0 || 'Must be greater than zero']"
-                      aria-label="How often to check for new files and folders"
-                      ref="syncFrequency"
-                      class="mt-0 headline"
-                      type="number"
-                    ></v-text-field>
-                  </v-flex>
-                </v-layout>
-                <v-layout align-baseline row>
-                  <v-flex>
-                    <h1>minutes</h1>
-                  </v-flex>
-                </v-layout>
-              </v-layout>
-              <v-btn
-                v-if="step == 3"
-                color="primary"
-                @click="beginSync"
-              >
-                Continue
-              </v-btn>
-            </v-stepper-content>
-          </v-stepper-items>
-        </v-stepper>
-      </v-flex>
-    </v-layout>
-  </v-content>
+						<v-stepper-step
+						 editable
+						 :complete="step > 2"
+						 step="2"
+						>Where to sync it?</v-stepper-step>
+						<v-stepper-content step="2">
+							<v-layout row>
+								<v-flex
+								 mb-2
+								 large
+								>
+									<v-btn
+									 v-if="step == 2"
+									 large
+									 @click="chooseFolder"
+									>{{ folder }}</v-btn>
+								</v-flex>
+							</v-layout>
+
+							<v-btn
+							 v-if="folderChosen && step == 2"
+							 color="primary"
+							 @click="step = 3"
+							>
+								Continue
+							</v-btn>
+							<v-btn
+							 v-else
+							 color="primary"
+							 @click="step = 3"
+							 disabled
+							>
+								Continue
+							</v-btn>
+						</v-stepper-content>
+
+						<v-stepper-step
+						 editable
+						 step="3"
+						>How often?</v-stepper-step>
+						<v-stepper-content step="3">
+							<v-layout
+							 column
+							 pl-2
+							>
+								<v-layout row>
+									<v-flex>
+										<h1>Sync every</h1>
+									</v-flex>
+								</v-layout>
+								<v-layout
+								 align-baseline
+								 row
+								>
+									<v-flex xs1>
+										<v-text-field
+										 v-if="step == 3"
+										 v-model="syncFrequency"
+										 :rules="[() => parseInt(syncFrequency) > 0 || 'Must be greater than zero']"
+										 aria-label="How often to check for new files and folders"
+										 ref="syncFrequency"
+										 class="mt-0 headline"
+										 type="number"
+										></v-text-field>
+									</v-flex>
+								</v-layout>
+								<v-layout
+								 align-baseline
+								 row
+								>
+									<v-flex>
+										<h1>minutes</h1>
+									</v-flex>
+								</v-layout>
+							</v-layout>
+							<v-btn
+							 v-if="step == 3"
+							 color="primary"
+							 @click="beginSync"
+							>
+								Continue
+							</v-btn>
+						</v-stepper-content>
+					</v-stepper-items>
+				</v-stepper>
+			</v-flex>
+		</v-layout>
+	</v-content>
 </template>
 
 <script>
@@ -167,6 +216,14 @@
     },
     mounted() {
       log.info('in configure');
+      this.$electron.ipcRenderer.send('get-default-folder');
+      this.$electron.ipcRenderer.on('got-default-folder', (event, data) => {
+        log.info(data);
+        if (data !== 'No folder chosen') {
+          this.folderChosen = true;
+          this.folder = data;
+        }
+      });
       this.courses = this.$store.getters.courses;
       this.$electron.ipcRenderer.on('chose-folder', (event, data) => {
         if (data !== 'No folder chosen') {

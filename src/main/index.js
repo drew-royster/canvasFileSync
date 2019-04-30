@@ -33,6 +33,7 @@ if (process.env.NODE_ENV !== 'development') {
 let mainWindow = null;
 let tray;
 let syncing = false;
+let defaultFolder = '';
 const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
@@ -143,6 +144,8 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 };
 
 app.on('ready', async () => {
+  defaultFolder = app.getPath('documents');
+  log.info(defaultFolder);
   Menu.setApplicationMenu(applicationMenu);
   tray = new Tray(
     path.join(__static, 'icons_normal/icons/png/32x32@2x.png') // eslint-disable-line
@@ -347,6 +350,11 @@ ipcMain.on('disconnect', async (e) => {
 ipcMain.on('create-folders', async (event, folders) => {
   await createFolders(folders);
   event.sender.send('folders-created');
+});
+
+ipcMain.on('get-default-folder', async (event) => {
+  log.info(defaultFolder);
+  event.sender.send('got-default-folder', defaultFolder);
 });
 
 app.on('activate', () => {
@@ -614,18 +622,24 @@ const checkForNewAndRemovedCourses = async (authToken, rootURL, courses) => {
       }
     }));
     if (newCourseIDs.length === 0 && removedCourseIDs.length === 0) {
-      return { hasUpdates: false,
+      return {
+        hasUpdates: false,
         newCourses,
-        removedCourseIDs };
+        removedCourseIDs,
+      };
     }
-    return { hasUpdates: true,
+    return {
+      hasUpdates: true,
       newCourses,
-      removedCourseIDs };
+      removedCourseIDs,
+    };
   } catch (err) {
     log.error(pe.render(err));
-    return { hasUpdates: false,
+    return {
+      hasUpdates: false,
       newCourses: [],
-      removedCourseIDs: [] };
+      removedCourseIDs: [],
+    };
   }
 };
 
