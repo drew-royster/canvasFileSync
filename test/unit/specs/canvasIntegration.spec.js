@@ -4,7 +4,7 @@ import canvasIntegration from '../../../src/utils/canvasIntegration';
 
 const authToken = process.env.authToken;
 const rootURL = process.env.rootURL;
-const protocol = 'http://';
+const protocol = 'https://';
 const accountID = 1;
 let courseID;
 let folderID;

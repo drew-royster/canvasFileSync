@@ -1,90 +1,109 @@
 <template>
-  <v-container>
-    <v-content>
-      <v-layout row id="wrapper">
-        <v-flex xs3></v-flex>
-        <v-flex xs6 class="text-xs-center">
-          <v-card light>
-            <v-card-text>
-              <v-flex xs12>
-                <img height="150px" width="150px" id="logo" class="logo" v-bind:src="logoURL" alt="Canvas File Sync Logo">
-              </v-flex>
-            </v-card-text>
-          </v-card>
-        </v-flex>
-        <v-flex xs3></v-flex>
-      </v-layout>
-      <v-layout row>
-        <v-flex xs3></v-flex>
-        <v-flex xs6>
-          <v-card>
-            <v-card-text>
-              <v-container>
-                <v-layout row>
-                  <v-autocomplete
-                    id="school-search"
-                    v-if="!manual"
-                    ref="schoolSearch"
-                    v-model="school"
-                    :items="schools"
-                    :loading="isLoading"
-                    :search-input.sync="search"
-                    color="white"
-                    hide-no-data
-                    hide-selected
-                    item-text="name"
-                    label="School"
-                    placeholder="Search for schools"
-                    prepend-icon="school"
-                    return-object
-                    required
-                  ></v-autocomplete>
-                  <v-text-field
-                    v-else
-                    placeholder="Enter schools canvas domain name"
-                    v-model="schoolURL"
-                    prepend-icon="school"
-                    required
-                  ></v-text-field>
-                </v-layout>
-                <v-layout v-if="manual" row>
-                  <v-flex xs12>
-                    <v-text-field
-                      :rules="authTokenRules"
-                      name="Auth Token"
-                      label="Auth Token"
-                      id="authToken"
-                      v-model="authToken"
-                      type="text"
-                      prepend-icon="vpn_key"
-                      @keyup.enter="connect"
-                      required
-                    ></v-text-field>
-                  </v-flex>
-                </v-layout>
-                <v-layout row>
-                  <v-flex>
-                    <v-switch label="Hacker Mode" v-model="manual"></v-switch>
-                  </v-flex>
-                </v-layout>
-                <v-layout justify-center>
-                  <v-flex text-xs-center>
-                    <v-btn
-                      :disabled="!valid"
-                      @click="connect"
-                    >
-                    CONNECT
-                    </v-btn>
-                  </v-flex>
-                </v-layout>
-              </v-container>
-            </v-card-text>
-          </v-card>
-        </v-flex>
-        <v-flex xs3></v-flex>
-      </v-layout>
-    </v-content>
-  </v-container>
+	<v-container>
+		<v-content>
+			<v-layout
+			 row
+			 id="wrapper"
+			>
+				<v-flex xs3></v-flex>
+				<v-flex
+				 xs6
+				 class="text-xs-center"
+				>
+					<v-card light>
+						<v-card-text>
+							<v-flex xs12>
+								<img
+								 height="150px"
+								 width="150px"
+								 id="logo"
+								 class="logo"
+								 v-bind:src="logoURL"
+								 alt="Canvas File Sync Logo"
+								>
+							</v-flex>
+						</v-card-text>
+					</v-card>
+				</v-flex>
+				<v-flex xs3></v-flex>
+			</v-layout>
+			<v-layout row>
+				<v-flex xs3></v-flex>
+				<v-flex xs6>
+					<v-card>
+						<v-card-text>
+							<v-container>
+								<v-layout row>
+									<v-autocomplete
+									 id="school-search"
+									 v-if="!manual"
+									 ref="schoolSearch"
+									 v-model="school"
+									 :items="schools"
+									 :loading="isLoading"
+									 :search-input.sync="search"
+									 color="white"
+									 hide-no-data
+									 hide-selected
+									 item-text="name"
+									 label="School"
+									 placeholder="Search for schools"
+									 prepend-icon="school"
+									 return-object
+									 required
+									></v-autocomplete>
+									<v-text-field
+									 v-else
+									 placeholder="Enter schools canvas domain name"
+									 v-model="schoolURL"
+									 prepend-icon="school"
+									 required
+									></v-text-field>
+								</v-layout>
+								<v-layout
+								 v-if="manual"
+								 row
+								>
+									<v-flex xs12>
+										<v-text-field
+										 :rules="authTokenRules"
+										 name="Auth Token"
+										 label="Auth Token"
+										 id="authToken"
+										 v-model="authToken"
+										 type="text"
+										 prepend-icon="vpn_key"
+										 @keyup.enter="connect"
+										 required
+										></v-text-field>
+									</v-flex>
+								</v-layout>
+								<v-layout row>
+									<v-flex>
+										<v-switch
+										 label="Hacker Mode"
+										 v-model="manual"
+										></v-switch>
+									</v-flex>
+								</v-layout>
+								<v-layout justify-center>
+									<v-flex text-xs-center>
+										<v-btn
+										 :disabled="!valid"
+										 @click="connect"
+										>
+											CONNECT
+										</v-btn>
+									</v-flex>
+								</v-layout>
+							</v-container>
+						</v-card-text>
+					</v-card>
+				</v-flex>
+				<v-flex xs3></v-flex>
+			</v-layout>
+		</v-content>
+	</v-container>
 </template>
 
 <script>
@@ -167,6 +186,7 @@
             this.$store.dispatch('connect');
             // this.$router.push('/configure');
           } else {
+            log.info(this.school.domain);
             this.$store.dispatch('goUniversityLogin', { rootURL: this.school.domain });
           }
         } catch (err) {

@@ -56,14 +56,20 @@ const list200Items = async (authToken, itemsURL) => {
 };
 
 const getModuleFileDetails = async (authToken, fileModuleURL) => {
-  const options = {
-    method: 'GET',
-    uri: fileModuleURL,
-    headers: { Authorization: `Bearer ${authToken}` },
-    json: true,
-    encoding: null,
-  };
-  return request.get(options);
+  try {
+    const options = {
+      method: 'GET',
+      uri: fileModuleURL,
+      headers: { Authorization: `Bearer ${authToken}` },
+      json: true,
+      encoding: null,
+    };
+    return request.get(options);
+  } catch (err) {
+    log.error(`Issue getting file module details for ${fileModuleURL}`);
+    log.error(err);
+    return null;
+  }
 };
 
 const getCourseRootFolder = async (authToken, rootURL, courseID) => {

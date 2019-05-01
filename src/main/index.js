@@ -145,7 +145,6 @@ const getUpdatedConnectedMenu = (lastSynced) => {
 
 app.on('ready', async () => {
   defaultFolder = app.getPath('documents');
-  log.info(defaultFolder);
   Menu.setApplicationMenu(applicationMenu);
   tray = new Tray(
     path.join(__static, 'icons_normal/icons/png/32x32@2x.png') // eslint-disable-line
@@ -169,7 +168,6 @@ app.on('ready', async () => {
   });
 
   if (await dataStorage.isConnected()) {
-    log.info('connected');
     if (await dataStorage.hasCheckedModules()) {
       log.info('we already have modules');
     } else {
@@ -650,7 +648,7 @@ const createFolders = async (folders) => {
         await fs.accessSync(folder, fs.constants.F_OK);
         return 'Folder already exists';
       } catch (err) {
-        log.error(err);
+        log.info(`Created folder ${folder}`);
         return fs.mkdirSync(folder);
       }
     }));

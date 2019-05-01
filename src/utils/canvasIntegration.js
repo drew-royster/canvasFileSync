@@ -20,26 +20,33 @@ const getCourses = async (
   try {
     const activeCoursesResponse = await apis.listActiveCanvasCourses(authToken, rootURL);
     const activeCourses = await Promise.all(_.map(activeCoursesResponse, async (activeCourse) => {
-      const tabs = await apis.listCourseTabs(authToken, rootURL, activeCourse.id);
-      const hasModulesTab = await hasItem(tabs, { id: 'modules' });
-      const hasFilesTab = await hasItem(tabs, { id: 'files' });
-      let files_url = null; // eslint-disable-line
-      let folders_url = null; // eslint-disable-line
-      if (hasFilesTab) {
-        ({ files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id)); // eslint-disable-line
+      try {
+        const tabs = await apis.listCourseTabs(authToken, rootURL, activeCourse.id);
+        const hasModulesTab = await hasItem(tabs, { id: 'modules' });
+        const hasFilesTab = await hasItem(tabs, { id: 'files' });
+        let files_url = null; // eslint-disable-line
+        let folders_url = null; // eslint-disable-line
+        if (hasFilesTab) {
+          ({ files_url, folders_url } = await getCourseFilesANDFoldersURLS(authToken, rootURL, activeCourse.id)); // eslint-disable-line
+        }
+        return {
+          id: activeCourse.id,
+          hasModulesTab,
+          hasFilesTab,
+          sync: true,
+          name: await makeFilenameSafe(activeCourse.name),
+          modules: [],
+          folder: true,
+          files: [],
+          folders: [],
+          files_url,
+          folders_url,
+        };
+      } catch (err) {
+        log.error(`Error getting course: ${activeCourse.name}`);
+        log.error(err);
+        return {};
       }
-      return { id: activeCourse.id,
-        hasModulesTab,
-        hasFilesTab,
-        sync: true,
-        name: await makeFilenameSafe(activeCourse.name),
-        modules: [],
-        folder: true,
-        files: [],
-        folders: [],
-        files_url,
-        folders_url,
-      };
     }));
     return { success: true, message: 'success', response: activeCourses };
   } catch (error) {
@@ -58,63 +65,84 @@ const buildCourseMap = async (
   rootURL,
   course,
 ) => {
-  // get modules and module files if that tab is available
-  if (course.hasModulesTab) {
-    course.modules = await getModules(authToken, rootURL, course);
-    const filesRaw = await getModulesFiles(authToken, course.modules, course);
-    course.files = course.files.concat(_.flatten(filesRaw));
+  try {
+    // get modules and module files if that tab is available
+    if (course.hasModulesTab) {
+      course.modules = await getModules(authToken, rootURL, course);
+      const filesRaw = await getModulesFiles(authToken, course.modules, course);
+      course.files = course.files.concat(_.flatten(filesRaw));
+    }
+    // get files and folders if files tab is available
+    if (course.hasFilesTab) {
+      const { files, folders } = await getCourseFilesAndFolders(authToken, course);
+      course.files.push(...files);
+      course.folders = folders;
+    }
+    return course;
+  } catch (err) {
+    log.error('Issue building course map');
+    log.error(err);
+    return {};
   }
-  // get files and folders if files tab is available
-  if (course.hasFilesTab) {
-    const { files, folders } = await getCourseFilesAndFolders(authToken, course);
-    course.files.push(...files);
-    course.folders = folders;
-  }
-  return course;
 };
 
 const getModules = async (authToken, rootURL, course) => {
-  const modulesRaw = await apis.listModules(authToken, rootURL, course);
-  return Promise.all(_.map(modulesRaw, async (courseModule) => {
-    const cleanName = await makeFilenameSafe(courseModule.name);
-    return {
-      name: cleanName,
-      modulePath: path.join(course.name, cleanName),
-      items_url: courseModule.items_url,
-      items_count: courseModule.items_count,
-    };
-  }));
+  try {
+    const modulesRaw = await apis.listModules(authToken, rootURL, course);
+    return Promise.all(_.map(modulesRaw, async (courseModule) => {
+      const cleanName = await makeFilenameSafe(courseModule.name);
+      return {
+        name: cleanName,
+        modulePath: path.join(course.name, cleanName),
+        items_url: courseModule.items_url,
+        items_count: courseModule.items_count,
+      };
+    }));
+  } catch (err) {
+    log.error('Issue getting modules');
+    log.error(err);
+    return {};
+  }
 };
 
 const getModulesFiles = async (authToken, modules, course) => {
   return Promise.all(_.map(modules, async (courseModule) => {
-    // get all module items
-    const moduleItems = await apis.listModuleItems(authToken, courseModule);
-    // filter only file items, we don't care about the rest
-    const filesModules = await Promise.all(_.filter(moduleItems, moduleItem => moduleItem.type === 'File'));
-    // get the file information for each module file
-    const filesRaw = await Promise.all(_.map(filesModules, async (fileModule) => {
-      return apis.getModuleFileDetails(authToken, fileModule.url);
-    }));
-    // parse file information into something usable
-    const files = await Promise.all(_.map(filesRaw, async (fileRaw) => {
-      const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
-      const cleanName = await makeFilenameSafe(courseModule.name);
-      const filename = await makeFilenameSafe(filenameDecoded);
-      const filePath = path.join(course.name, cleanName, filename);
-      const file = {
-        name: filename,
-        url: fileRaw.url,
-        folder: false,
-        lastUpdated: null,
-        size: fileRaw.size,
-        sync: true,
-        id: fileRaw.id,
-        filePath,
-      };
-      return file;
-    }));
-    return files;
+    try {
+      // get all module items
+      const moduleItems = await apis.listModuleItems(authToken, courseModule);
+      // filter only file items, we don't care about the rest
+      const filesModules = await Promise.all(_.filter(moduleItems, moduleItem => moduleItem.type === 'File'));
+      // get the file information for each module file
+      const filesRaw = await Promise.all(_.map(filesModules, async (fileModule) => {
+        return apis.getModuleFileDetails(authToken, fileModule.url);
+      }));
+      const nonLockedFilesRaw = await _.filter(filesRaw, file => !file.locked_for_user);
+      // parse file information into something usable
+      const files = await Promise.all(_.map(nonLockedFilesRaw, async (fileRaw) => {
+        // if fileRaw is null it means we had a problem getting the module file details
+        const filenameDecoded = decodeURIComponent(fileRaw.filename).replace(/\+/g, ' ').replace(/\\/g, ' ');
+        const cleanName = await makeFilenameSafe(courseModule.name);
+        const filename = await makeFilenameSafe(filenameDecoded);
+        const filePath = path.join(course.name, cleanName, filename);
+        const file = {
+          name: filename,
+          url: fileRaw.url,
+          folder: false,
+          lastUpdated: null,
+          size: fileRaw.size,
+          sync: true,
+          id: fileRaw.id,
+          filePath,
+        };
+        return file;
+      }));
+      // only return file if it's truthy. This filters out files we were unable
+      return files;
+    } catch (err) {
+      log.error(`Issue getting modules files for ${course.name}`);
+      log.error(err);
+      return [];
+    }
   }));
 };
 
@@ -152,7 +180,7 @@ const getUpdatedModulesFiles = async (authToken, modules, course) => {
       const fileIndex = _.findIndex(courseWithModulesFiles.files,
         { filePath });
       if (fileIndex >= 0) {
-        log.info('updating file');
+        // log.info('updating file');
         courseWithModulesFiles.files[fileIndex] = file;
       } else {
         courseWithModulesFiles.files.push(file);
@@ -316,7 +344,7 @@ const getNewFolders = async (authToken, rootURL, course, lastSynced) => {
     }));
     const newFolders = await Promise.all(_.map(newFoldersRaw, async (folder) => {
       const parseFullName = folder.full_name.replace('course files/', '');
-      await log.info({ parseFullName });
+      // await log.info({ parseFullName });
       const cleanedPath = await makeFoldernameSafe(parseFullName);
       const folderPath = path.join(course.name, cleanedPath);
       return {
@@ -347,7 +375,7 @@ const hasNewFile = async (authToken, rootURL, courseID, lastSynced) => {
     const filesLastUpdated = await apis.getLatestFile(authToken, rootURL, courseID);
 
     if (new Date(filesLastUpdated[0].updated_at) > new Date(lastSynced)) {
-      log.info('new file');
+      // log.info('new file');
       return true;
     }
     return false;
