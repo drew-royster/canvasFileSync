@@ -7,6 +7,10 @@
     <img src="https://travis-ci.com/drew-royster/canvasFileSync.svg?branch=master">
 </p>
 
+# Maintenance
+
+I'm in need of someone to pass the mantle to. I'd love for this project to keep going, but I'm not currently able to give this the attention it deserves. I'm willing to help out and ease the transition to whoever wants to take it over.
+
 # Introduction
 
 When using Canvas, I found that constantly downloading new files, updated files and then organizing those files was a huge pain. This program aims to work by having Google Drive like functionality with Canvas so that you never have to worry about being up to date or how you have organized things, because they will be organized on your computer just as they are organized on Canvas.
